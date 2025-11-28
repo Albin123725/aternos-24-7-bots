@@ -1,7 +1,7 @@
 {
   "name": "aternos-ultimate-rotation",
-  "version": "2.3.0",
-  "description": "Ultimate 24/7 Minecraft bot rotation system with creative inventory beds",
+  "version": "2.4.0",
+  "description": "Ultimate 24/7 Minecraft bot rotation system with bed breaking",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -15,7 +15,7 @@
     "aternos", 
     "24-7",
     "rotation",
-    "creative",
+    "bed-breaking",
     "auto-sleep"
   ],
   "author": "Your Name",
