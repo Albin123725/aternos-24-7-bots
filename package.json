@@ -4,12 +4,17 @@
   "description": "Ultimate bot rotation system with all features",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "node index.js",
+    "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
     "mineflayer": "^4.15.1"
   },
   "keywords": ["minecraft", "bot", "aternos", "rotation", "ai"],
   "author": "Your Name",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  }
 }
