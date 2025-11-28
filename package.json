@@ -1,7 +1,7 @@
 {
-  "name": "aternos-bot-rotation-system",
+  "name": "aternos-ultimate-rotation",
   "version": "1.0.0",
-  "description": "Advanced bot rotation system with all features",
+  "description": "Ultimate bot rotation system with all features",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
