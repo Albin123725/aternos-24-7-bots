@@ -403,8 +403,6 @@ class UltimateBot {
         
         const commands = [
             `/give ${this.config.username} white_bed 1`,
-            `/give ${this.config.username} light_blue_bed 1`,
-            `/give ${this.config.username} red_bed 1`,
             `/give ${this.config.username} black_bed 1`,
             `/give ${this.config.username} bed 1`
         ];
