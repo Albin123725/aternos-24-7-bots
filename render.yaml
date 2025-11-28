@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: aternos-bot-rotation
+    name: aternos-24-7-bots
     env: node
     plan: free
     buildCommand: npm install
