@@ -1,7 +1,7 @@
 {
   "name": "aternos-ultimate-rotation",
-  "version": "3.0.0",
-  "description": "Ultimate 24/7 Minecraft bot rotation system with creative mode sleep",
+  "version": "4.0.0",
+  "description": "Ultimate 24/7 Minecraft bot rotation system with gamemode protection",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
@@ -18,6 +18,7 @@
     "24-7",
     "rotation",
     "creative-mode",
+    "gamemode-protection",
     "auto-sleep"
   ],
   "author": "Your Name",
