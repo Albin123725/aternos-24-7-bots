@@ -202,12 +202,6 @@ class UltimateBot {
             return true;
         }
         
-        // Method 4: Try to find bed materials and craft
-        console.log(`🔨 ${this.config.username} checking for bed materials...`);
-        if (await this.tryCraftBed()) {
-            return true;
-        }
-        
         console.log(`❌ ${this.config.username} could not obtain bed by any method`);
         return false;
     }
@@ -223,9 +217,7 @@ class UltimateBot {
                 "/give @s red_bed 1",
                 "/give @s white_bed 1",
                 "/give @s minecraft:red_bed 1",
-                "/give @s minecraft:white_bed 1",
-                "bed",
-                "give bed"
+                "/give @s minecraft:white_bed 1"
             ];
             
             for (const command of commands) {
@@ -285,30 +277,6 @@ class UltimateBot {
         }
         
         return false;
-    }
-
-    async tryCraftBed() {
-        console.log(`🔨 ${this.config.username} checking for bed crafting materials...`);
-        
-        // Check for planks (wood)
-        const woodItems = this.bot.inventory.items().find(item => 
-            item.name.includes('planks') || item.name.includes('log') || item.name.includes('wood')
-        );
-        
-        // Check for wool
-        const woolItems = this.bot.inventory.items().find(item => 
-            item.name.includes('wool')
-        );
-
-        if (woodItems && woolItems) {
-            console.log(`✅ ${this.config.username} has materials: ${woodItems.name}, ${woolItems.name}`);
-            // In a real implementation, you'd craft the bed here
-            // For now, we'll just return true to simulate having a bed
-            return true;
-        } else {
-            console.log(`❌ ${this.config.username} missing bed materials`);
-            return false;
-        }
     }
 
     async checkForBedsInInventory() {
@@ -662,19 +630,151 @@ class UltimateBot {
         }
     }
 
-    // ... (rest of the methods remain the same as previous version)
+    async exploreArea() {
+        console.log(`🧭 ${this.config.username} exploring...`);
+        this.bot.setControlState('forward', true);
+        await delay(3000 + Math.random() * 5000);
+        this.bot.setControlState('forward', false);
+        await this.lookAround();
+        await delay(2000 + Math.random() * 3000);
+    }
 
-    assessEnvironment() {
-        const time = this.bot.time ? this.bot.time.timeOfDay : 0;
-        const isNight = time > 13000 && time < 23000;
-        const nearbyPlayers = Object.keys(this.bot.players).length - 1;
-        return {
-            time,
-            isNight,
-            health: this.bot.health || 20,
-            food: this.bot.food || 20,
-            nearbyPlayers
-        };
+    async mineResources() {
+        console.log(`⛏️ ${this.config.username} mining...`);
+        const block = this.bot.findBlock({
+            matching: (block) => block.name.includes('stone') || block.name.includes('coal'),
+            maxDistance: 4
+        });
+        if (block) {
+            try {
+                await this.bot.dig(block);
+                await delay(4000 + Math.random() * 5000);
+            } catch (error) {}
+        }
+    }
+
+    async socialize() {
+        const nearbyPlayers = Object.keys(this.bot.players).filter(name => name !== this.bot.username);
+        if (nearbyPlayers.length > 0 && this.chatCooldown <= Date.now()) {
+            this.smartChat();
+        }
+    }
+
+    async buildStructure() {
+        console.log(`🏗️ ${this.config.username} building...`);
+        for (let i = 0; i < 4; i++) {
+            this.bot.setControlState('forward', true);
+            await delay(1000 + Math.random() * 2000);
+            this.bot.setControlState('forward', false);
+            await this.lookAround();
+            await delay(1000 + Math.random() * 2000);
+        }
+    }
+
+    async farmAction() {
+        console.log(`🌱 ${this.config.username} farming...`);
+        for (let i = 0; i < 3; i++) {
+            this.bot.setControlState('sneak', true);
+            await delay(1000 + Math.random() * 1500);
+            this.bot.setControlState('sneak', false);
+            await delay(1500 + Math.random() * 2500);
+        }
+    }
+
+    async findFood() {
+        console.log(`🍎 ${this.config.username} finding food...`);
+        const food = this.bot.inventory.items().find(item => item.name.includes('apple') || item.name.includes('bread'));
+        if (food) {
+            try {
+                await this.bot.equip(food, 'hand');
+                await this.bot.consume();
+                console.log(`🍽️ ${this.config.username} ate ${food.name}`);
+            } catch (error) {}
+        }
+    }
+
+    async lookAround() {
+        if (!this.bot.entity) return;
+        const originalYaw = this.bot.entity.yaw;
+        const originalPitch = this.bot.entity.pitch;
+        for (let i = 0; i < 3; i++) {
+            const yaw = originalYaw + (Math.random() * 1.5 - 0.75);
+            const pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, originalPitch + (Math.random() * 0.8 - 0.4)));
+            this.bot.look(yaw, pitch, false);
+            await delay(300 + Math.random() * 600);
+        }
+    }
+
+    performHumanBehavior() {
+        const behaviors = [() => this.lookAround(), () => this.jumpRandomly(), () => this.switchItems()];
+        const behavior = behaviors[Math.floor(Math.random() * behaviors.length)];
+        behavior();
+    }
+
+    async jumpRandomly() {
+        const jumps = 1 + Math.floor(Math.random() * 4);
+        for (let i = 0; i < jumps; i++) {
+            this.bot.setControlState('jump', true);
+            await delay(100 + Math.random() * 200);
+            this.bot.setControlState('jump', false);
+            await delay(150 + Math.random() * 300);
+        }
+    }
+
+    async switchItems() {
+        const items = this.bot.inventory.items();
+        if (items.length > 1) {
+            const randomItem = items[Math.floor(Math.random() * items.length)];
+            this.bot.equip(randomItem, 'hand').catch(() => {});
+            await delay(500 + Math.random() * 1000);
+        }
+    }
+
+    handleSmartChat(message) {
+        const lowerMessage = message.toLowerCase();
+        if (lowerMessage.includes(this.config.username.toLowerCase())) {
+            setTimeout(() => {
+                if (this.chatCooldown <= Date.now()) {
+                    const response = this.generateSmartResponse(message);
+                    console.log(`💬 ${this.config.username} response: ${response}`);
+                    this.safeChat(response);
+                    this.chatCooldown = Date.now() + 4000;
+                }
+            }, 1000 + Math.random() * 2000);
+        }
+    }
+
+    generateSmartResponse(message) {
+        const lowerMessage = message.toLowerCase();
+        if (this.config.personality === 'agent') {
+            if (lowerMessage.includes('help')) return "Agent assisting! Mission underway!";
+            if (lowerMessage.includes('sleep') || lowerMessage.includes('bed')) return "Setting up tactical sleeping quarters!";
+        } else {
+            if (lowerMessage.includes('help')) return "I can help! What do you need?";
+            if (lowerMessage.includes('sleep') || lowerMessage.includes('bed')) return "Setting up a cozy sleeping spot!";
+        }
+        const responses = ['Hello!', 'Hi there!', 'Nice to see you!', 'What\'s up?'];
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    smartChat() {
+        if (this.chatCooldown > Date.now()) return;
+        const context = this.assessEnvironment();
+        let phrase;
+        if (context.isNight) {
+            phrase = this.config.personality === 'agent' 
+                ? "Night operations! Establishing sleeping quarters!" 
+                : "Peaceful night! Time to set up my bed!";
+        } else if (context.nearbyPlayers > 2) {
+            phrase = this.config.personality === 'agent' 
+                ? "Multiple contacts detected. Monitoring." 
+                : "So many friendly players around today!";
+        } else {
+            phrase = this.chatPhrases[Math.floor(Math.random() * this.chatPhrases.length)];
+        }
+        console.log(`💬 ${this.config.username} chat: ${phrase}`);
+        this.safeChat(phrase);
+        this.chatCooldown = Date.now() + 4000;
     }
 
     safeChat(message) {
@@ -699,7 +799,56 @@ class UltimateBot {
         }
     }
 
-    // ... (other essential methods)
+    handleHealthManagement() {
+        if (this.bot.food < 12) {
+            this.findFood();
+        }
+    }
+
+    handleDeath() {
+        const deathMessages = this.config.personality === 'agent' 
+            ? ["Mission failed! Will return!", "Tactical retreat! Regrouping!", "Agent down! Reinforcements needed!"]
+            : ["Oh no! I'll be back!", "That hurt! Time to respawn!", "Back to farming soon!"];
+        const message = deathMessages[Math.floor(Math.random() * deathMessages.length)];
+        setTimeout(() => this.safeChat(message), 2000);
+        this.hasBed = false;
+        this.bedPosition = null;
+        this.sleepPriority = false;
+        this.creativeModeEnabled = false;
+    }
+
+    checkBedStatus() {
+        if (this.hasBed && this.bedPosition) {
+            const bedBlock = this.bot.blockAt(this.bedPosition);
+            if (!bedBlock || !bedBlock.name.includes('bed')) {
+                console.log(`⚠️ ${this.config.username} bed missing at saved position`);
+                this.hasBed = false;
+                this.bedPosition = null;
+            }
+        }
+        const context = this.assessEnvironment();
+        if (context.isNight && !this.sleepPriority) {
+            this.sleepPriority = true;
+        }
+    }
+
+    assessEnvironment() {
+        const time = this.bot.time ? this.bot.time.timeOfDay : 0;
+        const isNight = time > 13000 && time < 23000;
+        const nearbyPlayers = Object.keys(this.bot.players).length - 1;
+        return {
+            time,
+            isNight,
+            health: this.bot.health || 20,
+            food: this.bot.food || 20,
+            nearbyPlayers
+        };
+    }
+
+    recordActivity(type) {
+        this.activities.push({ type, timestamp: new Date().toISOString() });
+        if (this.activities.length > 50) this.activities.shift();
+    }
 
     handleDisconnection() {
         this.clearIntervals();
@@ -721,4 +870,156 @@ class UltimateBot {
     }
 }
 
-// ... (RotationSystem and other code remains the same)
+class UltimateRotationSystem {
+    constructor() {
+        this.currentBot = null;
+        this.currentBotIndex = 0;
+        this.rotationHistory = [];
+        this.botConfigs = [
+            {
+                username: 'AGENT',
+                host: 'gameplanet.aternos.me',
+                port: 51270,
+                version: '1.21.10',
+                personality: 'agent',
+                sessionDuration: 2 * 60 * 60 * 1000
+            },
+            {
+                username: 'CROPTON',
+                host: 'gameplanet.aternos.me',
+                port: 51270,
+                version: '1.21.10',
+                personality: 'farmer', 
+                sessionDuration: 2 * 60 * 60 * 1000
+            }
+        ];
+        this.virtualIPs = [
+            { ip: '192.168.1.100', country: 'United States' },
+            { ip: '192.168.1.101', country: 'United Kingdom' },
+            { ip: '192.168.1.102', country: 'Canada' },
+            { ip: '192.168.1.103', country: 'Germany' },
+            { ip: '192.168.1.104', country: 'France' },
+            { ip: '192.168.1.105', country: 'Japan' }
+        ];
+        this.currentIPIndex = 0;
+        console.log('🔄 Ultimate Rotation System Initialized');
+        this.startRotationCycle();
+    }
+
+    async startRotationCycle() {
+        console.log('🚀 Starting 24/7 Rotation Cycle...\n');
+        while (true) {
+            await this.executeRotation();
+        }
+    }
+
+    async executeRotation() {
+        const botConfig = this.botConfigs[this.currentBotIndex];
+        const ipInfo = this.getNextIP();
+        console.log(`\n╔══════════════════════════════════════════════════╗`);
+        console.log(`║ 🔄 ROTATION CYCLE STARTING                        ║`);
+        console.log(`║ 🤖 Bot: ${botConfig.username.padEnd(26)} ║`);
+        console.log(`║ 🌍 Location: ${ipInfo.country.padEnd(23)} ║`);
+        console.log(`║ 📍 IP: ${ipInfo.ip.padEnd(31)} ║`);
+        console.log(`║ 🛏️ Multi-Method Beds: Creative + World Search     ║`);
+        console.log(`║ 🎯 Smart Sleep: Auto Bed Management               ║`);
+        console.log(`╚══════════════════════════════════════════════════╝\n`);
+
+        this.currentBot = new UltimateBot(botConfig);
+        const connected = await this.currentBot.initialize();
+        if (!connected) {
+            console.log(`❌ Failed to connect ${botConfig.username}, retrying in 2 minutes`);
+            await delay(120000);
+            return;
+        }
+
+        const sessionTime = botConfig.sessionDuration + (Math.random() * 60 * 60 * 1000);
+        const hours = Math.round(sessionTime / 3600000 * 10) / 10;
+        console.log(`\n⏰ ${botConfig.username} session: ${hours} hours`);
+        console.log(`🎯 Features: Multi-Method Beds • Smart Sleep • Auto Bed Management\n`);
+
+        await delay(sessionTime);
+
+        console.log(`\n🛑 Ending ${botConfig.username} session...`);
+        this.currentBot.disconnect();
+        this.currentBot = null;
+
+        this.recordRotation(botConfig.username, sessionTime, ipInfo);
+
+        const breakTime = 5 * 60 * 1000 + Math.random() * 10 * 60 * 1000;
+        const breakMinutes = Math.round(breakTime / 60000);
+        console.log(`\n💤 Break time: ${breakMinutes} minutes until next bot\n`);
+        await delay(breakTime);
+
+        this.currentBotIndex = (this.currentBotIndex + 1) % this.botConfigs.length;
+    }
+
+    getNextIP() {
+        const ipInfo = this.virtualIPs[this.currentIPIndex];
+        this.currentIPIndex = (this.currentIPIndex + 1) % this.virtualIPs.length;
+        return ipInfo;
+    }
+
+    recordRotation(botName, duration, ipInfo) {
+        const rotation = {
+            bot: botName,
+            startTime: new Date(),
+            duration: duration,
+            ip: ipInfo.ip,
+            country: ipInfo.country,
+            endTime: new Date()
+        };
+        this.rotationHistory.unshift(rotation);
+        if (this.rotationHistory.length > 10) this.rotationHistory.pop();
+        const minutes = Math.round(duration / 60000);
+        console.log(`📊 Rotation recorded: ${botName} - ${minutes} minutes - ${ipInfo.country}`);
+    }
+}
+
+// Start the system
+const rotationSystem = new UltimateRotationSystem();
+
+// Health check server
+const http = require('http');
+const healthServer = http.createServer((req, res) => {
+    if (req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            status: 'healthy',
+            service: 'Minecraft Bot Rotation System',
+            currentBot: rotationSystem.currentBot ? rotationSystem.currentBot.config.username : 'None',
+            rotationCount: rotationSystem.rotationHistory.length,
+            uptime: Math.floor(process.uptime()) + ' seconds',
+            timestamp: new Date().toISOString(),
+            features: 'Multi-Method Beds • Smart Sleep • Auto Bed Management'
+        }));
+    } else {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('Minecraft Ultimate Bot Rotation System - 24/7 Operation\n\nVisit /health for status');
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+healthServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`🌐 Health check server running on port ${PORT}`);
+    console.log(`🔍 Render can now monitor: http://localhost:${PORT}/health`);
+});
+
+// Graceful shutdown
+const gracefulShutdown = async () => {
+    console.log('\n🛑 Shutting down Ultimate Rotation System...');
+    if (rotationSystem.currentBot) rotationSystem.currentBot.disconnect();
+    healthServer.close(() => {
+        console.log('✅ Health server closed');
+        process.exit(0);
+    });
+};
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+process.on('uncaughtException', (error) => {
+    console.log('🚨 Uncaught Exception:', error.message);
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.log('🚨 Unhandled Rejection at:', promise, 'reason:', reason);
+});
