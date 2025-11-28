@@ -7,9 +7,12 @@ console.log(`
 ║  🤖 Bots: AGENT ↔ CROPTON (Single Bot Rotation)                            ║
 ║  🌐 Server: gameplanet.aternos.me:51270                                    ║
 ║  ⚡ Version: 1.21.10                                                        ║
-║  🛡️ FIXED: No More Errors • Stable Connection                             ║
-║  🔄 AUTO-RECONNECT: 5-Second Retry • Infinite Attempts                     ║
+║  🔄 ROTATION: 2-Minute Breaks • Fast Switching                            ║
+║  🛡️ ANTI-KICK: Immediate Reconnection • Kick Protection                   ║
 ║  🎨 PERMANENT CREATIVE: Gamemode Protection                                ║
+║  🛏️ SMART SLEEP: Occupied Bed Handling • Alternative Placement            ║
+║  🧠 AI FEATURES: Realistic Day Activities • Immediate Night Sleep          ║
+║  🔇 NO CHAT: Silent Operation • Focus on Gameplay                          ║
 ║  🕒 24/7 Operation: Continuous Presence                                    ║
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -43,7 +46,7 @@ class UltimateBot {
         this.maxReconnectAttempts = 100;
         this.reconnectDelay = 5000;
         
-        console.log(`🤖 ${this.config.username} initialized with STABLE CONNECTION`);
+        console.log(`🤖 ${this.config.username} initialized with 2-MINUTE ROTATION`);
     }
 
     async initialize() {
@@ -79,7 +82,6 @@ class UltimateBot {
                 resolve(false);
             }, 45000);
 
-            // SUCCESSFUL LOGIN
             this.bot.on('login', () => {
                 clearTimeout(loginTimeout);
                 console.log(`✅ ${this.config.username} logged in successfully`);
@@ -87,7 +89,6 @@ class UltimateBot {
                 this.reconnectAttempts = 0;
                 this.reconnectDelay = 5000;
                 
-                // Enforce creative mode after a short delay
                 setTimeout(async () => {
                     await this.enforceCreativeMode();
                 }, 3000);
@@ -95,13 +96,11 @@ class UltimateBot {
                 resolve(true);
             });
 
-            // SPAWN IN WORLD
             this.bot.on('spawn', () => {
                 console.log(`🎯 ${this.config.username} spawned in world - STARTING SYSTEMS`);
                 this.startAllSystems();
             });
 
-            // KICK HANDLING - IMMEDIATE RECONNECTION
             this.bot.on('kicked', (reason) => {
                 console.log(`🚫 ${this.config.username} KICKED:`, reason.toString());
                 console.log(`🔄 ${this.config.username} scheduling immediate reconnect...`);
@@ -112,7 +111,6 @@ class UltimateBot {
                 }, 2000);
             });
 
-            // SERVER DISCONNECTION
             this.bot.on('end', (reason) => {
                 console.log(`🔌 ${this.config.username} SERVER DISCONNECTED:`, reason || 'No reason provided');
                 console.log(`🔄 ${this.config.username} scheduling reconnect...`);
@@ -123,31 +121,25 @@ class UltimateBot {
                 }, this.reconnectDelay);
             });
 
-            // ERROR HANDLING
             this.bot.on('error', (err) => {
                 console.log(`🔌 ${this.config.username} connection error:`, err.message);
             });
 
-            // FIXED GAMEMODE PROTECTION - WITH ERROR HANDLING
             this.bot.on('game', (packet) => {
                 try {
-                    // Safe gamemode detection
                     if (packet && typeof packet.gameMode === 'number') {
                         this.handleGamemodeChange(packet.gameMode);
                     }
                 } catch (error) {
                     console.log(`⚠️ ${this.config.username} gamemode detection error:`, error.message);
-                    // Don't crash on gamemode errors
                 }
             });
 
-            // DEATH HANDLING
             this.bot.on('death', () => {
                 console.log(`💀 ${this.config.username} died`);
                 this.handleDeath();
             });
 
-            // TIME UPDATES
             this.bot.on('time', () => {
                 this.handleTimeBasedActions();
             });
@@ -156,7 +148,6 @@ class UltimateBot {
         });
     }
 
-    // FIXED GAMEMODE HANDLING
     handleGamemodeChange(gameMode) {
         try {
             const gamemodeNames = {
@@ -203,7 +194,6 @@ class UltimateBot {
                     this.bot.chat(command);
                     await delay(3000);
                     
-                    // Don't check gameMode directly to avoid errors
                     this.isInCreative = true;
                     this.creativeEnforcementAttempts = 0;
                     console.log(`✅ ${this.config.username} CREATIVE MODE ENFORCED`);
@@ -231,36 +221,30 @@ class UltimateBot {
     startAllSystems() {
         this.clearIntervals();
         
-        // Enforce creative mode
         setTimeout(async () => {
             await this.enforceCreativeMode();
         }, 2000);
 
-        // GAMEMODE PROTECTION - Check every 15 seconds
         const gamemodeInterval = setInterval(() => {
             this.checkGamemodeProtection();
         }, 15000);
 
-        // ENHANCED SLEEP CHECK - Every 5 seconds
         const sleepInterval = setInterval(() => {
             this.checkEnhancedSleep();
         }, 5000);
 
-        // DAYTIME ACTIVITIES
         const activityInterval = setInterval(() => {
             if (!this.isSleeping && !this.sleepInProgress && this.isInCreative) {
                 this.performDaytimeActivity();
             }
         }, 20000 + Math.random() * 30000);
 
-        // HUMAN BEHAVIOR
         const behaviorInterval = setInterval(() => {
             if (!this.isSleeping && !this.sleepInProgress && this.isInCreative) {
                 this.performHumanBehavior();
             }
         }, 10000 + Math.random() * 20000);
 
-        // BED MANAGEMENT
         const bedInterval = setInterval(() => {
             this.handleBedManagement();
         }, 15000);
@@ -268,7 +252,7 @@ class UltimateBot {
         this.behaviorIntervals = [gamemodeInterval, sleepInterval, activityInterval, behaviorInterval, bedInterval];
         
         console.log(`⚡ ${this.config.username} ALL SYSTEMS ACTIVATED`);
-        console.log(`🎯 FEATURES: No Errors • Stable Connection • Auto-Reconnect`);
+        console.log(`🎯 FEATURES: 2-Minute Rotation • No Errors • Auto-Reconnect`);
     }
 
     async checkGamemodeProtection() {
@@ -596,6 +580,191 @@ class UltimateBot {
         }
     }
 
+    async performDaytimeActivity() {
+        const context = this.assessEnvironment();
+        
+        if (context.isNight || this.isSleeping || this.sleepInProgress || !this.isInCreative) return;
+        
+        const activities = [
+            { type: 'explore', weight: 0.4 },
+            { type: 'mine', weight: 0.3 },
+            { type: 'build', weight: 0.2 },
+            { type: 'farm', weight: 0.1 }
+        ];
+        
+        const totalWeight = activities.reduce((sum, a) => sum + a.weight, 0);
+        let random = Math.random() * totalWeight;
+        let selectedActivity = 'explore';
+        
+        for (const activity of activities) {
+            random -= activity.weight;
+            if (random <= 0) {
+                selectedActivity = activity.type;
+                break;
+            }
+        }
+        
+        console.log(`🎯 ${this.config.username} daytime activity: ${selectedActivity}`);
+        
+        switch (selectedActivity) {
+            case 'explore':
+                await this.exploreArea();
+                break;
+            case 'mine':
+                await this.mineResources();
+                break;
+            case 'build':
+                await this.buildStructure();
+                break;
+            case 'farm':
+                await this.farmAction();
+                break;
+        }
+    }
+
+    async exploreArea() {
+        const directions = ['forward', 'back', 'left', 'right'];
+        const mainDir = directions[Math.floor(Math.random() * directions.length)];
+        
+        this.bot.setControlState(mainDir, true);
+        await delay(3000 + Math.random() * 4000);
+        this.bot.setControlState(mainDir, false);
+        
+        await this.lookAround();
+    }
+
+    async mineResources() {
+        const block = this.bot.findBlock({
+            matching: (block) => block && (
+                block.name.includes('stone') || 
+                block.name.includes('dirt') ||
+                block.name.includes('wood')
+            ),
+            maxDistance: 5
+        });
+        
+        if (block) {
+            try {
+                await this.bot.dig(block);
+                await delay(4000 + Math.random() * 5000);
+            } catch (error) {
+                // Ignore mining errors
+            }
+        }
+    }
+
+    async buildStructure() {
+        for (let i = 0; i < 3; i++) {
+            this.bot.setControlState('forward', true);
+            await delay(1500 + Math.random() * 2000);
+            this.bot.setControlState('forward', false);
+            await this.lookAround();
+        }
+    }
+
+    async farmAction() {
+        for (let i = 0; i < 2; i++) {
+            this.bot.setControlState('sneak', true);
+            await delay(2000 + Math.random() * 3000);
+            this.bot.setControlState('sneak', false);
+            await delay(1500 + Math.random() * 2500);
+        }
+    }
+
+    async lookAround() {
+        if (!this.bot.entity) return;
+        
+        const originalYaw = this.bot.entity.yaw;
+        const originalPitch = this.bot.entity.pitch;
+        
+        for (let i = 0; i < 2; i++) {
+            const yaw = originalYaw + (Math.random() * 1.5 - 0.75);
+            const pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, originalPitch + (Math.random() * 0.5 - 0.25)));
+            this.bot.look(yaw, pitch, false);
+            await delay(600 + Math.random() * 800);
+        }
+    }
+
+    performHumanBehavior() {
+        const behaviors = [
+            () => this.lookAround(),
+            () => this.jumpRandomly(),
+            () => this.switchItems(),
+            () => this.sneakBriefly()
+        ];
+
+        const behavior = behaviors[Math.floor(Math.random() * behaviors.length)];
+        behavior();
+    }
+
+    async jumpRandomly() {
+        const jumps = 1 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < jumps; i++) {
+            this.bot.setControlState('jump', true);
+            await delay(200 + Math.random() * 300);
+            this.bot.setControlState('jump', false);
+            await delay(300 + Math.random() * 400);
+        }
+    }
+
+    async switchItems() {
+        const items = this.bot.inventory.items();
+        if (items.length > 1) {
+            const randomItem = items[Math.floor(Math.random() * items.length)];
+            try {
+                await this.bot.equip(randomItem, 'hand');
+                await delay(500 + Math.random() * 700);
+            } catch (error) {
+                // Ignore equip errors
+            }
+        }
+    }
+
+    async sneakBriefly() {
+        if (Math.random() < 0.3) {
+            this.bot.setControlState('sneak', true);
+            await delay(2000 + Math.random() * 3000);
+            this.bot.setControlState('sneak', false);
+        }
+    }
+
+    async handleBedManagement() {
+        const context = this.assessEnvironment();
+        const now = Date.now();
+        
+        if (now - this.lastBedCheck < 30000) return;
+        this.lastBedCheck = now;
+        
+        if (!context.isNight && this.hasBed && this.bedPosition && !this.isSleeping) {
+            console.log(`🧹 ${this.config.username} morning bed cleanup...`);
+            
+            const bedBlock = this.bot.blockAt(this.bedPosition);
+            if (bedBlock && (bedBlock.name.includes('_bed') || bedBlock.name === 'bed')) {
+                try {
+                    this.bot.lookAt(bedBlock.position.offset(0, 1, 0));
+                    await delay(500);
+                    await this.bot.dig(bedBlock);
+                    await delay(1000);
+                    
+                    this.hasBed = false;
+                    this.bedPosition = null;
+                    console.log(`✅ ${this.config.username} bed cleaned up`);
+                    
+                } catch (error) {
+                    console.log(`❌ ${this.config.username} bed cleanup failed:`, error.message);
+                }
+            } else {
+                this.hasBed = false;
+                this.bedPosition = null;
+            }
+        }
+        
+        if (this.occupiedBeds.size > 10) {
+            console.log(`🧹 ${this.config.username} clearing occupied beds cache (${this.occupiedBeds.size} entries)`);
+            this.occupiedBeds.clear();
+        }
+    }
+
     async safeReconnect() {
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
             console.log(`❌ ${this.config.username} max reconnection attempts reached`);
@@ -610,8 +779,7 @@ class UltimateBot {
         } catch (error) {
             console.log(`❌ ${this.config.username} reconnection failed:`, error.message);
             
-            // Increase delay for next attempt (exponential backoff)
-            this.reconnectDelay = Math.min(this.reconnectDelay * 1.5, 60000); // Max 1 minute
+            this.reconnectDelay = Math.min(this.reconnectDelay * 1.5, 60000);
             console.log(`⏳ Next reconnect in ${this.reconnectDelay/1000} seconds...`);
             
             setTimeout(() => {
@@ -619,8 +787,6 @@ class UltimateBot {
             }, this.reconnectDelay);
         }
     }
-
-    // ... (rest of the methods remain the same - performDaytimeActivity, exploreArea, mineResources, etc.)
 
     assessEnvironment() {
         if (!this.bot.time) {
@@ -688,8 +854,6 @@ class UltimateBot {
     }
 }
 
-// ... (RotationSystem remains the same as previous version)
-
 class UltimateRotationSystem {
     constructor() {
         this.currentBot = null;
@@ -704,7 +868,7 @@ class UltimateRotationSystem {
                 port: 51270,
                 version: '1.21.10',
                 personality: 'agent',
-                sessionDuration: 2 * 60 * 60 * 1000
+                sessionDuration: 2 * 60 * 60 * 1000 // 2 hours
             },
             {
                 username: 'CROPTON',
@@ -712,7 +876,7 @@ class UltimateRotationSystem {
                 port: 51270,
                 version: '1.21.10',
                 personality: 'farmer', 
-                sessionDuration: 2 * 60 * 60 * 1000
+                sessionDuration: 2 * 60 * 60 * 1000 // 2 hours
             }
         ];
         
@@ -729,7 +893,7 @@ class UltimateRotationSystem {
         this.systemStartTime = Date.now();
         
         console.log('🔄 ULTIMATE ROTATION SYSTEM INITIALIZED');
-        console.log('🎯 FEATURES: No Errors • Stable Connection • Auto-Reconnect');
+        console.log('🎯 FEATURES: 2-Minute Rotation Breaks • All Latest Features');
         
         this.startRotationCycle();
     }
@@ -756,8 +920,8 @@ class UltimateRotationSystem {
         console.log(`║ 🤖 Bot: ${botConfig.username.padEnd(26)} ║`);
         console.log(`║ 🌍 Location: ${ipInfo.country.padEnd(23)} ║`);
         console.log(`║ 📍 IP: ${ipInfo.ip.padEnd(31)} ║`);
-        console.log(`║ 🛡️ STABLE: No More Errors • Auto-Reconnect       ║`);
-        console.log(`║ 🎨 PERMANENT: Creative Mode Protection           ║`);
+        console.log(`║ ⏱️ BREAKS: 2-Minute Rotation Switching           ║`);
+        console.log(`║ 🛡️ FEATURES: All Latest Systems Active          ║`);
         console.log(`╚══════════════════════════════════════════════════╝\n`);
 
         this.currentBot = new UltimateBot(botConfig);
@@ -773,12 +937,15 @@ class UltimateRotationSystem {
         const hours = Math.round(sessionTime / 3600000 * 10) / 10;
         
         console.log(`\n⏰ ${botConfig.username} session started: ${hours} hours`);
-        console.log(`🎯 Active Features:`);
-        console.log(`   • No More Gamemode Errors`);
-        console.log(`   • Stable Connection Handling`);
+        console.log(`🎯 ALL LATEST FEATURES ACTIVE:`);
+        console.log(`   • 2-Minute Rotation Breaks`);
+        console.log(`   • No Gamemode Errors`);
         console.log(`   • Auto-Reconnect System`);
         console.log(`   • Permanent Creative Mode`);
-        console.log(`   • Smart Sleep System\n`);
+        console.log(`   • Occupied Bed Handling`);
+        console.log(`   • Smart Sleep System`);
+        console.log(`   • Realistic AI Activities`);
+        console.log(`   • Anti-Kick Protection\n`);
 
         await delay(sessionTime);
 
@@ -790,10 +957,11 @@ class UltimateRotationSystem {
 
         this.recordRotation(botConfig.username, sessionTime, ipInfo);
 
-        const breakTime = 3 * 60 * 1000 + Math.random() * 7 * 60 * 1000;
+        // 🎯 UPDATED: 2-MINUTE BREAKS ONLY
+        const breakTime = 2 * 60 * 1000; // Exactly 2 minutes
         const breakMinutes = Math.round(breakTime / 60000);
         
-        console.log(`\n💤 Rotation break: ${breakMinutes} minutes until next bot\n`);
+        console.log(`\n💤 FAST ROTATION: ${breakMinutes} minutes until next bot\n`);
         await delay(breakTime);
 
         this.currentBotIndex = (this.currentBotIndex + 1) % this.botConfigs.length;
@@ -864,36 +1032,42 @@ const healthServer = http.createServer((req, res) => {
         res.end(JSON.stringify({
             status: 'healthy',
             service: 'Minecraft Ultimate Bot Rotation System',
-            version: '4.1.0',
+            version: '4.2.0',
             features: [
+                '2-Minute Rotation Breaks',
                 'No Gamemode Errors',
-                'Stable Connection Handling',
                 'Auto-Reconnect System',
                 'Permanent Creative Mode',
-                'Smart Sleep System'
+                'Occupied Bed Handling',
+                'Smart Sleep System',
+                'Realistic AI Activities',
+                'Anti-Kick Protection'
             ],
             currentBot: status.currentBot,
             rotationCount: status.rotationCount,
             systemUptime: Math.floor(status.systemUptime / 1000) + ' seconds',
             totalUptime: Math.floor(status.systemUptime / 3600000 * 10) / 10 + ' hours',
             timestamp: new Date().toISOString(),
-            server: 'gameplanet.aternos.me:51270'
+            server: 'gameplanet.aternos.me:51270',
+            rotationBreak: '2 minutes'
         }, null, 2));
         
     } else {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
-        res.end(`Minecraft Ultimate Bot Rotation System v4.1.0
+        res.end(`Minecraft Ultimate Bot Rotation System v4.2.0
 
-🛡️ STABLE VERSION:
-• No More Gamemode Errors
+⏱️ FAST ROTATION SYSTEM:
+• 2-Minute Rotation Breaks Only
+• Fast Bot Switching
+• Maximum Server Presence
+
+🎯 ALL LATEST FEATURES:
+• No Gamemode Errors
 • Auto-Reconnect System
 • Permanent Creative Mode
-• Stable Connection Handling
-
-🎯 ACTIVE FEATURES:
-• Bot Rotation: AGENT ↔ CROPTON
-• Smart Sleep with Occupied Bed Handling
-• Realistic AI Daytime Activities
+• Occupied Bed Handling
+• Smart Sleep System
+• Realistic AI Activities
 
 🌍 SERVER: gameplanet.aternos.me:51270
 📊 STATUS: /health or /status
@@ -928,3 +1102,10 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
     console.log('🚨 UNHANDLED REJECTION at:', promise);
 });
+
+// Periodic system status
+setInterval(() => {
+    const status = rotationSystem.getStatus();
+    const uptimeHours = Math.floor(status.systemUptime / 3600000 * 10) / 10;
+    console.log(`\n📈 SYSTEM STATUS: ${status.currentBot} active • ${uptimeHours}h uptime • ${status.rotationCount} rotations • 2-minute breaks\n`);
+}, 15 * 60 * 1000);
