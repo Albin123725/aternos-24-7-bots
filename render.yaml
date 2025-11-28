@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: aternos-24-7-bots
+    name: aternos-bot-rotation
     env: node
     plan: free
     buildCommand: npm install
@@ -8,3 +8,6 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+    # ADD THESE TWO LINES:
+    healthCheckPath: /health
+    autoDeploy: true
