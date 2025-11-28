@@ -9,7 +9,7 @@ console.log(`
 ║  ⚡ Version: 1.21.10                                                        ║
 ║  🔄 Rotation: One Bot at a Time • 2-3 Hour Sessions                        ║
 ║  🎨 GAMEMODE: Creative Mode 24/7 • Instant Bed Access                      ║
-║  🛏️ FIXED SLEEP: Proper Bed Verification • No False Positives             ║
+║  🛏️ FIXED SLEEP: Occupied Bed Handling • Alternative Beds                ║
 ║  🧠 AI FEATURES: Realistic Day Activities • Immediate Night Sleep          ║
 ║  🔇 NO CHAT: Silent Operation • Focus on Gameplay                          ║
 ║  🕒 24/7 Operation: Continuous Presence                                    ║
@@ -37,8 +37,9 @@ class UltimateBot {
         this.sleepInProgress = false;
         this.bedPlaceAttempts = 0;
         this.lastBedCheck = 0;
+        this.occupiedBeds = new Set(); // Track occupied beds to avoid them
         
-        console.log(`🤖 ${this.config.username} initialized with enhanced bed detection`);
+        console.log(`🤖 ${this.config.username} initialized with occupied bed handling`);
     }
 
     async initialize() {
@@ -181,7 +182,7 @@ class UltimateBot {
         this.behaviorIntervals = [sleepInterval, activityInterval, behaviorInterval, bedInterval, creativeCheck];
         
         console.log(`⚡ ${this.config.username} ALL SYSTEMS ACTIVATED`);
-        console.log(`🎯 FEATURES: Enhanced Bed Detection • Creative 24/7 • No False Positives`);
+        console.log(`🎯 FEATURES: Occupied Bed Handling • Alternative Bed Placement • Creative 24/7`);
     }
 
     async checkEnhancedSleep() {
@@ -223,12 +224,12 @@ class UltimateBot {
             return;
         }
 
-        // STEP 2: ENHANCED bed check with verification
-        console.log(`🔍 ${this.config.username} enhanced bed search...`);
-        const bed = await this.findVerifiedBed();
+        // STEP 2: ENHANCED bed check with occupied bed handling
+        console.log(`🔍 ${this.config.username} enhanced bed search with occupied check...`);
+        const bed = await this.findAvailableBed();
         
         if (bed) {
-            console.log(`✅ ${this.config.username} verified bed found`);
+            console.log(`✅ ${this.config.username} available bed found`);
             await this.enhancedSleepInBed(bed);
             return;
         }
@@ -242,9 +243,9 @@ class UltimateBot {
             return;
         }
 
-        // STEP 4: Safe bed placement
-        console.log(`📍 ${this.config.username} placing new bed safely...`);
-        const newBed = await this.placeBedSafely();
+        // STEP 4: Safe bed placement away from occupied beds
+        console.log(`📍 ${this.config.username} placing new bed in safe location...`);
+        const newBed = await this.placeBedAwayFromOccupied();
         
         if (newBed) {
             await this.enhancedSleepInBed(newBed);
@@ -253,8 +254,8 @@ class UltimateBot {
         }
     }
 
-    async findVerifiedBed() {
-        console.log(`🔎 ${this.config.username} searching for verified bed...`);
+    async findAvailableBed() {
+        console.log(`🔎 ${this.config.username} searching for available bed...`);
         
         // Find potential bed blocks
         const potentialBeds = this.bot.findBlocks({
@@ -263,24 +264,40 @@ class UltimateBot {
                 // Only accept blocks that are definitely beds
                 return block.name.includes('_bed') || block.name === 'bed';
             },
-            maxDistance: 12,
-            count: 10
+            maxDistance: 15,
+            count: 20
         });
 
         console.log(`📊 ${this.config.username} found ${potentialBeds.length} potential bed locations`);
 
-        // Verify each potential bed
+        // Check each potential bed for availability
         for (const bedPos of potentialBeds) {
             try {
                 const bedBlock = this.bot.blockAt(bedPos);
                 if (!bedBlock) continue;
 
-                console.log(`🔬 ${this.config.username} verifying bed at ${bedPos.x}, ${bedPos.y}, ${bedPos.z}`);
+                // Skip if this bed is marked as occupied
+                const bedKey = `${bedPos.x},${bedPos.y},${bedPos.z}`;
+                if (this.occupiedBeds.has(bedKey)) {
+                    console.log(`🚫 ${this.config.username} skipping occupied bed: ${bedKey}`);
+                    continue;
+                }
+
+                console.log(`🔬 ${this.config.username} checking bed at ${bedPos.x}, ${bedPos.y}, ${bedPos.z}`);
                 
                 // Enhanced verification - check if it's actually a bed
                 if (bedBlock.name.includes('_bed') || bedBlock.name === 'bed') {
                     console.log(`✅ ${this.config.username} VERIFIED REAL BED: ${bedBlock.name} at ${bedPos.x}, ${bedPos.y}, ${bedPos.z}`);
-                    return bedBlock;
+                    
+                    // Quick check if bed might be occupied by trying to sleep (with timeout)
+                    const isAvailable = await this.quickBedAvailabilityCheck(bedBlock);
+                    if (isAvailable) {
+                        console.log(`🛏️ ${this.config.username} bed is available!`);
+                        return bedBlock;
+                    } else {
+                        console.log(`🚫 ${this.config.username} bed is occupied, marking as unavailable`);
+                        this.occupiedBeds.add(bedKey);
+                    }
                 } else {
                     console.log(`❌ ${this.config.username} false positive: ${bedBlock.name} is not a bed`);
                 }
@@ -289,8 +306,31 @@ class UltimateBot {
             }
         }
 
-        console.log(`❌ ${this.config.username} no verified beds found`);
+        console.log(`❌ ${this.config.username} no available beds found`);
         return null;
+    }
+
+    async quickBedAvailabilityCheck(bed) {
+        try {
+            // Quick attempt to sleep with short timeout
+            const sleepPromise = this.bot.sleep(bed);
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('bed_check_timeout')), 2000)
+            );
+            
+            await Promise.race([sleepPromise, timeoutPromise]);
+            
+            // If we get here, bed was available and we're sleeping
+            this.bot.wake(); // Immediately wake up from test
+            return true;
+            
+        } catch (error) {
+            if (error.message.includes('occupied') || error.message.includes('bed_check_timeout')) {
+                return false; // Bed is occupied or check timed out
+            }
+            // Other errors might mean bed is available but something else went wrong
+            return true;
+        }
     }
 
     async acquireBedSafely() {
@@ -328,16 +368,16 @@ class UltimateBot {
         return false;
     }
 
-    async placeBedSafely() {
-        console.log(`📍 ${this.config.username} safe bed placement...`);
+    async placeBedAwayFromOccupied() {
+        console.log(`📍 ${this.config.username} placing bed away from occupied locations...`);
         
         const pos = this.bot.entity.position;
         const startX = Math.floor(pos.x);
         const startY = Math.floor(pos.y);
         const startZ = Math.floor(pos.z);
         
-        // Try positions in expanding circles
-        for (let radius = 1; radius <= 3; radius++) {
+        // Try positions in expanding circles, avoiding occupied areas
+        for (let radius = 2; radius <= 5; radius++) {
             for (let x = -radius; x <= radius; x++) {
                 for (let z = -radius; z <= radius; z++) {
                     // Only try perimeter positions to avoid checking same spots
@@ -347,6 +387,11 @@ class UltimateBot {
                     const testY = startY;
                     const testZ = startZ + z;
                     
+                    // Check if this position is near any occupied beds
+                    if (this.isNearOccupiedBed(testX, testY, testZ)) {
+                        continue;
+                    }
+                    
                     try {
                         const floorBlock = this.bot.blockAt({ x: testX, y: testY - 1, z: testZ });
                         const targetBlock = this.bot.blockAt({ x: testX, y: testY, z: testZ });
@@ -354,7 +399,7 @@ class UltimateBot {
                         if (!floorBlock || !targetBlock) continue;
                         
                         // Check if floor is solid and target is air
-                        const solidBlocks = ['stone', 'dirt', 'grass', 'wood', 'planks', 'cobblestone'];
+                        const solidBlocks = ['stone', 'dirt', 'grass', 'wood', 'planks', 'cobblestone', 'sand', 'gravel'];
                         const isSolidFloor = solidBlocks.some(block => floorBlock.name.includes(block));
                         
                         if (isSolidFloor && targetBlock.name === 'air') {
@@ -387,7 +432,7 @@ class UltimateBot {
                             if (placedBed && (placedBed.name.includes('_bed') || placedBed.name === 'bed')) {
                                 this.bedPosition = { x: testX, y: testY, z: testZ };
                                 this.hasBed = true;
-                                console.log(`✅ ${this.config.username} SUCCESSFULLY PLACED VERIFIED BED: ${placedBed.name} at ${testX}, ${testY}, ${testZ}`);
+                                console.log(`✅ ${this.config.username} SUCCESSFULLY PLACED BED AWAY FROM OCCUPIED: ${placedBed.name} at ${testX}, ${testY}, ${testZ}`);
                                 return placedBed;
                             } else {
                                 console.log(`❌ ${this.config.username} placement verification failed - got: ${placedBed ? placedBed.name : 'nothing'}`);
@@ -400,13 +445,30 @@ class UltimateBot {
             }
         }
         
-        console.log(`❌ ${this.config.username} no suitable placement location found`);
+        console.log(`❌ ${this.config.username} no suitable placement location found away from occupied beds`);
         return null;
+    }
+
+    isNearOccupiedBed(x, y, z) {
+        for (const occupiedKey of this.occupiedBeds) {
+            const [occupiedX, occupiedY, occupiedZ] = occupiedKey.split(',').map(Number);
+            const distance = Math.sqrt(
+                Math.pow(x - occupiedX, 2) + 
+                Math.pow(y - occupiedY, 2) + 
+                Math.pow(z - occupiedZ, 2)
+            );
+            
+            // If within 8 blocks of an occupied bed, avoid this location
+            if (distance < 8) {
+                return true;
+            }
+        }
+        return false;
     }
 
     async enhancedSleepInBed(bed) {
         try {
-            console.log(`🚶 ${this.config.username} moving to verified bed...`);
+            console.log(`🚶 ${this.config.username} moving to available bed...`);
             
             // Calculate distance and move if needed
             const distance = this.bot.entity.position.distanceTo(bed.position);
@@ -426,18 +488,18 @@ class UltimateBot {
                 return;
             }
             
-            console.log(`😴 ${this.config.username} attempting sleep in verified bed...`);
+            console.log(`😴 ${this.config.username} attempting sleep in available bed...`);
             
             // Look directly at bed
             this.bot.lookAt(bed.position, false);
             await delay(1000);
             
-            // Attempt sleep
+            // Attempt sleep with specific error handling for occupied beds
             await this.bot.sleep(bed);
             
             this.isSleeping = true;
             this.bedPlaceAttempts = 0;
-            console.log(`✅ ${this.config.username} SUCCESSFULLY SLEEPING IN VERIFIED BED!`);
+            console.log(`✅ ${this.config.username} SUCCESSFULLY SLEEPING IN AVAILABLE BED!`);
             
             // Sleep monitoring
             const sleepMonitor = setInterval(() => {
@@ -445,16 +507,26 @@ class UltimateBot {
                     clearInterval(sleepMonitor);
                     this.isSleeping = false;
                     console.log(`🌅 ${this.config.username} sleep session ended`);
+                    
+                    // Clear occupied beds cache after successful sleep session
+                    this.occupiedBeds.clear();
                 }
             }, 5000);
             
         } catch (error) {
             console.log(`❌ ${this.config.username} enhanced sleep failed:`, error.message);
             this.isSleeping = false;
+            
+            if (error.message.includes('occupied')) {
+                console.log(`🚫 ${this.config.username} bed became occupied, marking it`);
+                const bedKey = `${bed.position.x},${bed.position.y},${bed.position.z}`;
+                this.occupiedBeds.add(bedKey);
+            }
+            
             this.bedPlaceAttempts++;
             
             // If we've failed too many times, reset bed status
-            if (this.bedPlaceAttempts > 3) {
+            if (this.bedPlaceAttempts > 2) {
                 console.log(`🔄 ${this.config.username} resetting bed status after multiple failures`);
                 this.hasBed = false;
                 this.bedPosition = null;
@@ -643,6 +715,12 @@ class UltimateBot {
                 this.bedPosition = null;
             }
         }
+        
+        // Clear occupied beds cache periodically
+        if (this.occupiedBeds.size > 10) {
+            console.log(`🧹 ${this.config.username} clearing occupied beds cache (${this.occupiedBeds.size} entries)`);
+            this.occupiedBeds.clear();
+        }
     }
 
     assessEnvironment() {
@@ -673,6 +751,7 @@ class UltimateBot {
         this.isSleeping = false;
         this.sleepInProgress = false;
         this.bedPlaceAttempts = 0;
+        this.occupiedBeds.clear();
         
         // Ensure creative mode after respawn
         setTimeout(async () => {
@@ -711,7 +790,7 @@ class UltimateBot {
     }
 }
 
-// ... (RotationSystem and other code remains the same as previous version)
+// ... (RotationSystem remains the same as previous version, just update the feature descriptions)
 
 class UltimateRotationSystem {
     constructor() {
@@ -752,7 +831,7 @@ class UltimateRotationSystem {
         this.systemStartTime = Date.now();
         
         console.log('🔄 ULTIMATE ROTATION SYSTEM INITIALIZED');
-        console.log('🎯 FEATURES: Enhanced Bed Detection • Creative 24/7 • No False Positives');
+        console.log('🎯 FEATURES: Occupied Bed Handling • Alternative Placement • Creative 24/7');
         
         this.startRotationCycle();
     }
@@ -779,8 +858,8 @@ class UltimateRotationSystem {
         console.log(`║ 🤖 Bot: ${botConfig.username.padEnd(26)} ║`);
         console.log(`║ 🌍 Location: ${ipInfo.country.padEnd(23)} ║`);
         console.log(`║ 📍 IP: ${ipInfo.ip.padEnd(31)} ║`);
-        console.log(`║ 🛏️ ENHANCED: Verified Bed Detection              ║`);
-        console.log(`║ 🎨 MODE: Creative 24/7 • No False Positives      ║`);
+        console.log(`║ 🛏️ OCCUPIED: Smart Bed Avoidance                ║`);
+        console.log(`║ 🎨 MODE: Creative 24/7 • Alternative Placement   ║`);
         console.log(`╚══════════════════════════════════════════════════╝\n`);
 
         this.currentBot = new UltimateBot(botConfig);
@@ -797,11 +876,11 @@ class UltimateRotationSystem {
         
         console.log(`\n⏰ ${botConfig.username} session started: ${hours} hours`);
         console.log(`🎯 Active Features:`);
-        console.log(`   • Enhanced Bed Verification`);
-        console.log(`   • No False Positive Detection`);
+        console.log(`   • Occupied Bed Detection & Avoidance`);
+        console.log(`   • Alternative Bed Placement`);
+        console.log(`   • Bed Availability Testing`);
         console.log(`   • Creative Mode 24/7`);
-        console.log(`   • Safe Bed Placement`);
-        console.log(`   • Realistic Activities\n`);
+        console.log(`   • Occupied Bed Cache Management\n`);
 
         await delay(sessionTime);
 
@@ -887,13 +966,13 @@ const healthServer = http.createServer((req, res) => {
         res.end(JSON.stringify({
             status: 'healthy',
             service: 'Minecraft Ultimate Bot Rotation System',
-            version: '3.1.0',
+            version: '3.2.0',
             features: [
-                'Enhanced Bed Verification',
-                'No False Positive Detection',
+                'Occupied Bed Detection & Avoidance',
+                'Alternative Bed Placement',
+                'Bed Availability Testing',
                 'Creative Mode 24/7',
-                'Safe Bed Placement',
-                'Realistic AI Activities'
+                'Occupied Bed Cache Management'
             ],
             currentBot: status.currentBot,
             rotationCount: status.rotationCount,
@@ -904,7 +983,7 @@ const healthServer = http.createServer((req, res) => {
         
     } else {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
-        res.end('Minecraft Ultimate Bot Rotation System v3.1.0\n\nVisit /health for status');
+        res.end('Minecraft Ultimate Bot Rotation System v3.2.0\n\nVisit /health for status');
     }
 });
 
