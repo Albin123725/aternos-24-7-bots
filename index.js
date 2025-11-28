@@ -9,8 +9,8 @@ console.log(`
 ║  ⚡ Version: 1.21.10                                                        ║
 ║  🔄 Rotation: One Bot at a Time • 2-3 Hour Sessions                        ║
 ║  🧠 AI Features: All Enabled • Auto-Sleep • Combat • Chat                  ║
-║  🛏️ MULTI-METHOD BEDS: Creative + Inventory + World Search                ║
-║  🎮 GAMEMODE: Smart bed acquisition with fallback methods                  ║
+║  🛏️ WORKING SLEEP: Actually moves and sleeps immediately                  ║
+║  ⚡ ACTION SYSTEM: Forces movement and bed placement                       ║
 ║  🕒 24/7 Operation: Continuous Presence                                    ║
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -37,7 +37,7 @@ class UltimateBot {
         this.bedPosition = null;
         this.sleepPriority = false;
         this.bedPlacementAttempts = 0;
-        this.creativeModeEnabled = false;
+        this.isSleeping = false;
         
         this.setupBotBehavior();
     }
@@ -85,10 +85,10 @@ class UltimateBot {
                 "Moving to designated coordinates!"
             ];
             this.bedChat = [
-                "Setting up tactical sleeping quarters!",
-                "Deploying overnight position!",
-                "Establishing secure rest area!",
-                "Preparing bedding for night operations!"
+                "Night detected! Setting up sleeping quarters!",
+                "Time to sleep! Establishing bed position!",
+                "Activating sleep protocol! Deploying bed!",
+                "Sleep mode engaged! Preparing bedding!"
             ];
             this.morningChat = [
                 "Mission resumed! Day operations beginning!",
@@ -113,10 +113,10 @@ class UltimateBot {
                 "Fresh vegetables for everyone!"
             ];
             this.bedChat = [
-                "Setting up a cozy sleeping spot!",
-                "Preparing my bed for the night!",
-                "Getting ready for a good night's rest!",
-                "Making my sleeping area comfortable!"
+                "Nighttime! Setting up a cozy bed!",
+                "Time to sleep! Making my sleeping spot!",
+                "Getting ready for bed! Preparing rest area!",
+                "Sleepy time! Setting up for the night!"
             ];
             this.morningChat = [
                 "Good morning! Time to start farming!",
@@ -181,96 +181,100 @@ class UltimateBot {
         });
     }
 
-    async ensureHasBed() {
-        console.log(`🛏️ ${this.config.username} ensuring bed availability...`);
+    startAllSystems() {
+        this.clearIntervals();
         
-        // Method 1: Check if we already have a bed
-        if (await this.checkForBedsInInventory()) {
-            console.log(`✅ ${this.config.username} already has bed in inventory`);
-            return true;
-        }
-        
-        // Method 2: Try creative mode commands
-        console.log(`🎨 ${this.config.username} trying creative commands...`);
-        if (await this.tryCreativeCommands()) {
-            return true;
-        }
-        
-        // Method 3: Look for beds in the world to break
-        console.log(`🔍 ${this.config.username} searching for beds in world...`);
-        if (await this.findAndBreakBed()) {
-            return true;
-        }
-        
-        console.log(`❌ ${this.config.username} could not obtain bed by any method`);
-        return false;
-    }
+        // IMMEDIATE ACTION SYSTEM - Every 3 seconds
+        const actionInterval = setInterval(() => {
+            this.performImmediateAction();
+        }, 3000);
 
-    async tryCreativeCommands() {
-        console.log(`🎯 ${this.config.username} attempting creative commands...`);
-        
-        try {
-            // Try multiple command variations
-            const commands = [
-                "/give @s bed 1",
-                "/give @s minecraft:bed 1",
-                "/give @s red_bed 1",
-                "/give @s white_bed 1",
-                "/give @s minecraft:red_bed 1",
-                "/give @s minecraft:white_bed 1"
-            ];
-            
-            for (const command of commands) {
-                console.log(`💬 ${this.config.username} trying: ${command}`);
-                this.safeChat(command);
-                await delay(2500);
-                
-                // Check if we got a bed
-                if (await this.checkForBedsInInventory()) {
-                    console.log(`✅ ${this.config.username} successfully got bed from command`);
-                    return true;
-                }
+        // Main AI Decision System
+        const aiInterval = setInterval(() => {
+            this.performAITask();
+        }, 30000 + Math.random() * 60000);
+
+        // Smart Chat System
+        const chatInterval = setInterval(() => {
+            if (Math.random() < 0.35 && this.chatCooldown <= Date.now()) {
+                this.smartChat();
             }
-            
-            return false;
-            
-        } catch (error) {
-            console.log(`❌ ${this.config.username} creative commands error:`, error.message);
-            return false;
+        }, 90000 + Math.random() * 120000);
+
+        // Human Behavior System
+        const behaviorInterval = setInterval(() => {
+            this.performHumanBehavior();
+        }, 15000 + Math.random() * 30000);
+
+        this.behaviorIntervals = [actionInterval, aiInterval, chatInterval, behaviorInterval];
+        
+        console.log(`⚡ ${this.config.username} all systems activated`);
+        console.log(`🎯 Features: IMMEDIATE ACTIONS • Working Sleep • Active Movement`);
+    }
+
+    async performImmediateAction() {
+        const context = this.assessEnvironment();
+        
+        // FORCE SLEEP if it's night and we're not already sleeping
+        if (context.isNight && !this.isSleeping) {
+            console.log(`🌙 ${this.config.username} NIGHT DETECTED - FORCING SLEEP NOW!`);
+            await this.forceSleepNow();
+            return;
+        }
+        
+        // Wake up if it's morning and we're sleeping
+        if (!context.isNight && this.isSleeping) {
+            console.log(`🌅 ${this.config.username} MORNING - WAKING UP!`);
+            try {
+                this.bot.wake();
+                this.isSleeping = false;
+                this.sleepPriority = false;
+            } catch (error) {
+                // Ignore wake errors
+            }
         }
     }
 
-    async findAndBreakBed() {
-        console.log(`⛏️ ${this.config.username} searching for nearby beds...`);
+    async forceSleepNow() {
+        if (this.isSleeping) return;
         
-        // Look for beds in a wider radius
-        const bed = this.bot.findBlock({
-            matching: (block) => block.name.includes('bed'),
-            maxDistance: 12
-        });
+        console.log(`🛏️ ${this.config.username} EXECUTING FORCE SLEEP...`);
+        
+        // Step 1: Get a bed immediately
+        if (!await this.ensureHasBed()) {
+            console.log(`❌ ${this.config.username} no bed available, trying creative...`);
+            await this.tryCreativeBed();
+        }
+        
+        // Step 2: Find or place a bed
+        let bed = await this.findOrPlaceBed();
         
         if (bed) {
+            await this.sleepInBed(bed);
+        } else {
+            console.log(`❌ ${this.config.username} failed to sleep, will retry in 10 seconds`);
+            setTimeout(() => this.forceSleepNow(), 10000);
+        }
+    }
+
+    async ensureHasBed() {
+        // Check inventory first
+        if (await this.checkForBedsInInventory()) {
+            return true;
+        }
+        
+        // Look for nearby bed to break
+        const nearbyBed = this.bot.findBlock({
+            matching: (block) => block.name.includes('bed'),
+            maxDistance: 8
+        });
+        
+        if (nearbyBed) {
             try {
-                console.log(`🎯 ${this.config.username} found bed at ${bed.position}`);
-                
-                // Move to bed
-                this.bot.lookAt(bed.position.offset(0, 1, 0));
-                this.bot.setControlState('forward', true);
+                console.log(`⛏️ ${this.config.username} breaking nearby bed...`);
+                await this.bot.dig(nearbyBed);
                 await delay(2000);
-                this.bot.setControlState('forward', false);
-                await delay(1000);
-                
-                // Break the bed
-                console.log(`⛏️ ${this.config.username} breaking bed...`);
-                await this.bot.dig(bed);
-                await delay(3000);
-                
-                // Check if we got the bed
-                if (await this.checkForBedsInInventory()) {
-                    console.log(`✅ ${this.config.username} successfully broke and collected bed`);
-                    return true;
-                }
-                
+                return await this.checkForBedsInInventory();
             } catch (error) {
                 console.log(`❌ ${this.config.username} failed to break bed:`, error.message);
             }
@@ -279,69 +283,150 @@ class UltimateBot {
         return false;
     }
 
-    async checkForBedsInInventory() {
-        await delay(1000);
+    async tryCreativeBed() {
+        console.log(`🎨 ${this.config.username} trying creative commands...`);
         
-        const beds = this.bot.inventory.items().filter(item => 
-            item.name.includes('bed')
-        );
+        const commands = [
+            "/give @s bed 1",
+            "/give @s red_bed 1",
+            "/give @s white_bed 1"
+        ];
         
-        if (beds.length > 0) {
-            console.log(`✅ ${this.config.username} has ${beds.length} beds in inventory`);
-            return true;
+        for (const command of commands) {
+            this.safeChat(command);
+            await delay(2000);
+            if (await this.checkForBedsInInventory()) {
+                console.log(`✅ ${this.config.username} got bed from: ${command}`);
+                return true;
+            }
         }
         
         return false;
     }
 
-    startAllSystems() {
-        this.clearIntervals();
+    async findOrPlaceBed() {
+        // Look for existing bed first
+        let bed = this.bot.findBlock({
+            matching: (block) => block.name.includes('bed'),
+            maxDistance: 10
+        });
         
-        // Main AI Decision System
-        const aiInterval = setInterval(() => {
-            this.performAITask();
-        }, 45000 + Math.random() * 90000);
+        if (bed) {
+            console.log(`✅ ${this.config.username} found existing bed`);
+            return bed;
+        }
+        
+        // Place new bed
+        console.log(`🛏️ ${this.config.username} placing new bed...`);
+        return await this.placeBedNow();
+    }
 
-        // Smart Chat System
-        const chatInterval = setInterval(() => {
-            if (Math.random() < 0.35 && this.chatCooldown <= Date.now()) {
-                this.smartChat();
+    async placeBedNow() {
+        if (!await this.checkForBedsInInventory()) {
+            console.log(`❌ ${this.config.username} no bed to place`);
+            return null;
+        }
+        
+        const bedItem = this.bot.inventory.items().find(item => item.name.includes('bed'));
+        if (!bedItem) return null;
+        
+        const pos = this.bot.entity.position;
+        const startX = Math.floor(pos.x);
+        const startY = Math.floor(pos.y);
+        const startZ = Math.floor(pos.z);
+        
+        // Try positions around the bot
+        for (let x = -2; x <= 2; x++) {
+            for (let z = -2; z <= 2; z++) {
+                const testX = startX + x;
+                const testZ = startZ + z;
+                
+                try {
+                    const floorBlock = this.bot.blockAt({ x: testX, y: startY - 1, z: testZ });
+                    const targetBlock = this.bot.blockAt({ x: testX, y: startY, z: testZ });
+                    
+                    if (floorBlock && floorBlock.name !== 'air' && targetBlock && targetBlock.name === 'air') {
+                        await this.bot.equip(bedItem, 'hand');
+                        await delay(500);
+                        
+                        this.bot.lookAt({ x: testX, y: startY, z: testZ }, false);
+                        await delay(500);
+                        
+                        await this.bot.placeBlock(targetBlock, { x: 0, y: 1, z: 0 });
+                        await delay(1000);
+                        
+                        const placedBed = this.bot.blockAt({ x: testX, y: startY, z: testZ });
+                        if (placedBed && placedBed.name.includes('bed')) {
+                            console.log(`✅ ${this.config.username} placed bed at ${testX}, ${startY}, ${testZ}`);
+                            this.bedPosition = { x: testX, y: startY, z: testZ };
+                            this.hasBed = true;
+                            return placedBed;
+                        }
+                    }
+                } catch (error) {
+                    // Continue trying other positions
+                }
             }
-        }, 120000 + Math.random() * 180000);
-
-        // Human Behavior System
-        const behaviorInterval = setInterval(() => {
-            this.performHumanBehavior();
-        }, 25000 + Math.random() * 50000);
-
-        // Bed Management System
-        const bedInterval = setInterval(() => {
-            this.checkBedStatus();
-        }, 30000);
-
-        // Morning Bed Breaking System
-        const morningInterval = setInterval(() => {
-            this.handleMorningBedBreaking();
-        }, 10000);
-
-        this.behaviorIntervals = [aiInterval, chatInterval, behaviorInterval, bedInterval, morningInterval];
+        }
         
-        console.log(`⚡ ${this.config.username} all systems activated`);
-        console.log(`🎯 Features: Multi-Method Beds • Smart Sleep • Auto Bed Management`);
+        return null;
+    }
+
+    async sleepInBed(bed) {
+        try {
+            console.log(`🚶 ${this.config.username} moving to bed...`);
+            
+            // Move toward bed
+            this.bot.lookAt(bed.position.offset(0, 1, 0));
+            this.bot.setControlState('forward', true);
+            await delay(2000);
+            this.bot.setControlState('forward', false);
+            await delay(1000);
+            
+            console.log(`😴 ${this.config.username} attempting to sleep...`);
+            await this.bot.sleep(bed);
+            
+            this.isSleeping = true;
+            this.sleepPriority = true;
+            console.log(`✅ ${this.config.username} SUCCESSFULLY SLEEPING!`);
+            
+            // Sleep announcement
+            if (this.chatCooldown <= Date.now()) {
+                const bedMessage = this.bedChat[Math.floor(Math.random() * this.bedChat.length)];
+                this.safeChat(bedMessage);
+                this.chatCooldown = Date.now() + 5000;
+            }
+            
+        } catch (error) {
+            console.log(`❌ ${this.config.username} sleep failed:`, error.message);
+            this.isSleeping = false;
+            
+            // Try again in 5 seconds
+            setTimeout(() => this.forceSleepNow(), 5000);
+        }
+    }
+
+    async checkForBedsInInventory() {
+        await delay(500);
+        const beds = this.bot.inventory.items().filter(item => item.name.includes('bed'));
+        return beds.length > 0;
     }
 
     async performAITask() {
+        if (this.isSleeping) {
+            console.log(`⏸️ ${this.config.username} AI tasks paused - sleeping`);
+            return;
+        }
+        
         const context = this.assessEnvironment();
         
-        // Force sleep task if it's night and sleep priority is high
-        if (context.isNight && this.sleepPriority) {
-            console.log(`🌙 ${this.config.username} sleep priority activated`);
-            await this.autoSleep();
+        // Don't do other tasks if it's night - focus on sleeping
+        if (context.isNight) {
+            console.log(`🌙 ${this.config.username} night time - sleep priority`);
             return;
         }
         
         const task = this.chooseAITask(context);
-        
         console.log(`🧠 ${this.config.username} AI decision: ${task}`);
         
         try {
@@ -352,9 +437,6 @@ class UltimateBot {
                 case 'mine':
                     await this.mineResources();
                     break;
-                case 'sleep':
-                    await this.autoSleep();
-                    break;
                 case 'social':
                     await this.socialize();
                     break;
@@ -364,51 +446,27 @@ class UltimateBot {
                 case 'farm':
                     await this.farmAction();
                     break;
-                case 'place_bed':
-                    await this.placeBed();
-                    break;
-                case 'get_bed':
-                    await this.ensureHasBed();
-                    break;
                 default:
                     await this.exploreArea();
             }
-            this.recordActivity(task);
         } catch (error) {
             console.log(`❌ ${this.config.username} task failed:`, error.message);
         }
     }
 
     chooseAITask(context) {
-        const tasks = [];
-        
-        if (context.isNight) {
-            tasks.push({ task: 'sleep', weight: 0.95 });
-            tasks.push({ task: 'get_bed', weight: 0.90 });
-            tasks.push({ task: 'place_bed', weight: 0.85 });
-        } else {
-            tasks.push({ task: 'explore', weight: 0.6 });
-            tasks.push({ task: 'mine', weight: 0.5 });
-            tasks.push({ task: 'farm', weight: 0.4 });
-            tasks.push({ task: 'build', weight: 0.3 });
-            tasks.push({ task: 'get_bed', weight: 0.4 }); // Prepare for night
-        }
+        const tasks = [
+            { task: 'explore', weight: 0.6 },
+            { task: 'mine', weight: 0.5 },
+            { task: 'farm', weight: 0.4 },
+            { task: 'build', weight: 0.3 },
+            { task: 'social', weight: 0.2 }
+        ];
 
-        if (context.food < 10) {
-            tasks.push({ task: 'eat', weight: 0.7 });
-        }
-
-        if (context.nearbyPlayers > 0) {
-            tasks.push({ task: 'social', weight: 0.3 });
-        }
-
-        const totalWeight = tasks.reduce((sum, t) => sum + (t.weight || 0), 0);
-        if (totalWeight === 0) return 'explore';
-        
+        const totalWeight = tasks.reduce((sum, t) => sum + t.weight, 0);
         let random = Math.random() * totalWeight;
         
         for (const task of tasks) {
-            if (!task.weight) continue;
             random -= task.weight;
             if (random <= 0) return task.task;
         }
@@ -416,253 +474,60 @@ class UltimateBot {
         return 'explore';
     }
 
-    async placeBed() {
-        console.log(`🛏️ ${this.config.username} attempting to place bed...`);
-        
-        // Ensure we have a bed first
-        if (!await this.ensureHasBed()) {
-            console.log(`❌ ${this.config.username} cannot place bed - no bed available`);
-            return false;
-        }
-
-        // Get bed from inventory
-        const bedItem = this.bot.inventory.items().find(item => 
-            item.name.includes('bed')
-        );
-
-        if (!bedItem) {
-            console.log(`❌ ${this.config.username} bed disappeared from inventory`);
-            return false;
-        }
-
-        // Find position near the bot
-        const startX = Math.floor(this.bot.entity.position.x);
-        const startY = Math.floor(this.bot.entity.position.y);
-        const startZ = Math.floor(this.bot.entity.position.z);
-
-        let bedPlaced = false;
-        
-        // Try positions around the bot
-        for (let x = -3; x <= 3 && !bedPlaced; x++) {
-            for (let z = -3; z <= 3 && !bedPlaced; z++) {
-                const testX = startX + x;
-                const testZ = startZ + z;
-                
-                for (let yOffset = -2; yOffset <= 2 && !bedPlaced; yOffset++) {
-                    const testY = startY + yOffset;
-                    
-                    try {
-                        const floorBlock = this.bot.blockAt({ x: testX, y: testY - 1, z: testZ });
-                        const targetBlock = this.bot.blockAt({ x: testX, y: testY, z: testZ });
-                        
-                        if (floorBlock && floorBlock.name !== 'air' && 
-                            floorBlock.name !== 'water' && floorBlock.name !== 'lava' &&
-                            targetBlock && targetBlock.name === 'air') {
-                            
-                            await this.bot.equip(bedItem, 'hand');
-                            await delay(1000);
-                            
-                            this.bot.lookAt({ x: testX, y: testY, z: testZ }, false);
-                            await delay(500);
-                            
-                            await this.bot.placeBlock(targetBlock, { x: 0, y: 1, z: 0 });
-                            await delay(2000);
-                            
-                            this.bedPosition = { x: testX, y: testY, z: testZ };
-                            this.hasBed = true;
-                            bedPlaced = true;
-                            
-                            console.log(`✅ ${this.config.username} placed bed at ${testX}, ${testY}, ${testZ}`);
-                            
-                            if (this.chatCooldown <= Date.now()) {
-                                const bedMessage = this.bedChat[Math.floor(Math.random() * this.bedChat.length)];
-                                this.safeChat(bedMessage);
-                                this.chatCooldown = Date.now() + 5000;
-                            }
-                            
-                            break;
-                        }
-                    } catch (error) {
-                        // Continue trying other positions
-                    }
-                }
-            }
-        }
-
-        if (!bedPlaced) {
-            console.log(`❌ ${this.config.username} could not find suitable location for bed`);
-        }
-        
-        return bedPlaced;
-    }
-
-    async autoSleep() {
-        const now = Date.now();
-        if (now - this.lastSleepAttempt < 10000) return;
-        
-        this.lastSleepAttempt = now;
-        const context = this.assessEnvironment();
-
-        if (context.isNight) {
-            console.log(`🌙 ${this.config.username} attempting to sleep...`);
-            
-            let bed = null;
-            
-            // Use existing bed if available
-            if (this.hasBed && this.bedPosition) {
-                bed = this.bot.blockAt(this.bedPosition);
-                if (!bed || !bed.name.includes('bed')) {
-                    this.hasBed = false;
-                    this.bedPosition = null;
-                    bed = null;
-                }
-            }
-            
-            // Look for nearby bed
-            if (!bed) {
-                bed = this.bot.findBlock({
-                    matching: (block) => block.name.includes('bed'),
-                    maxDistance: 15
-                });
-            }
-            
-            // Place new bed if needed
-            if (!bed) {
-                console.log(`🛏️ ${this.config.username} placing new bed...`);
-                const bedPlaced = await this.placeBed();
-                if (bedPlaced && this.bedPosition) {
-                    bed = this.bot.blockAt(this.bedPosition);
-                }
-            }
-
-            if (bed) {
-                try {
-                    // Move to bed
-                    const distance = this.bot.entity.position.distanceTo(bed.position);
-                    if (distance > 3) {
-                        console.log(`🚶 ${this.config.username} moving to bed (${Math.round(distance)} blocks)`);
-                        this.bot.lookAt(bed.position.offset(0, 1, 0));
-                        this.bot.setControlState('forward', true);
-                        await delay(2000);
-                        this.bot.setControlState('forward', false);
-                        await delay(1000);
-                    }
-                    
-                    console.log(`😴 ${this.config.username} sleeping in bed`);
-                    await this.bot.sleep(bed);
-                    console.log(`✅ ${this.config.username} sleeping peacefully`);
-                    
-                    this.sleepPriority = true;
-                    
-                    // Sleep monitoring
-                    const sleepInterval = setInterval(() => {
-                        if (!this.bot.isSleeping) {
-                            clearInterval(sleepInterval);
-                            this.sleepPriority = false;
-                            console.log(`❌ ${this.config.username} sleep interrupted`);
-                            return;
-                        }
-                        
-                        const currentTime = this.bot.time ? this.bot.time.timeOfDay : 0;
-                        if (currentTime < 1000) {
-                            this.bot.wake();
-                            clearInterval(sleepInterval);
-                            this.sleepPriority = false;
-                            console.log(`🌅 ${this.config.username} woke up at dawn`);
-                        }
-                    }, 5000);
-                    
-                } catch (error) {
-                    console.log(`❌ ${this.config.username} couldn't sleep:`, error.message);
-                    this.sleepPriority = false;
-                }
-            } else {
-                console.log(`❌ ${this.config.username} no bed available for sleeping`);
-                this.sleepPriority = true;
-            }
-        } else {
-            this.sleepPriority = false;
-        }
-    }
-
-    async handleMorningBedBreaking() {
-        const context = this.assessEnvironment();
-        
-        // It's morning and we have a placed bed
-        if (!context.isNight && this.hasBed && this.bedPosition) {
-            console.log(`🌅 ${this.config.username} morning detected - breaking bed...`);
-            
-            const bedBlock = this.bot.blockAt(this.bedPosition);
-            if (bedBlock && bedBlock.name.includes('bed')) {
-                try {
-                    // Move to bed
-                    this.bot.lookAt(bedBlock.position.offset(0, 1, 0));
-                    this.bot.setControlState('forward', true);
-                    await delay(1000);
-                    this.bot.setControlState('forward', false);
-                    
-                    // Break the bed
-                    console.log(`⛏️ ${this.config.username} breaking bed at ${this.bedPosition.x}, ${this.bedPosition.y}, ${this.bedPosition.z}`);
-                    await this.bot.dig(bedBlock);
-                    await delay(2000);
-                    
-                    // Reset bed status
-                    this.hasBed = false;
-                    this.bedPosition = null;
-                    
-                    console.log(`✅ ${this.config.username} broke bed and should have it in inventory`);
-                    
-                    // Morning chat
-                    if (this.chatCooldown <= Date.now()) {
-                        const morningMessage = this.morningChat[Math.floor(Math.random() * this.morningChat.length)];
-                        this.safeChat(morningMessage);
-                        this.chatCooldown = Date.now() + 5000;
-                    }
-                    
-                } catch (error) {
-                    console.log(`❌ ${this.config.username} failed to break bed:`, error.message);
-                }
-            } else {
-                // Bed is already gone
-                this.hasBed = false;
-                this.bedPosition = null;
-            }
-        }
-    }
-
     async exploreArea() {
         console.log(`🧭 ${this.config.username} exploring...`);
+        
+        // Move forward
         this.bot.setControlState('forward', true);
-        await delay(3000 + Math.random() * 5000);
+        await delay(3000 + Math.random() * 4000);
         this.bot.setControlState('forward', false);
+        
+        // Look around
         await this.lookAround();
+        
+        // Sometimes change direction
+        if (Math.random() < 0.4) {
+            this.bot.setControlState('left', true);
+            await delay(1000 + Math.random() * 2000);
+            this.bot.setControlState('left', false);
+        }
+        
         await delay(2000 + Math.random() * 3000);
     }
 
     async mineResources() {
         console.log(`⛏️ ${this.config.username} mining...`);
+        
         const block = this.bot.findBlock({
-            matching: (block) => block.name.includes('stone') || block.name.includes('coal'),
+            matching: (block) => block.name.includes('stone') || block.name.includes('coal') || block.name.includes('dirt'),
             maxDistance: 4
         });
+        
         if (block) {
             try {
                 await this.bot.dig(block);
                 await delay(4000 + Math.random() * 5000);
-            } catch (error) {}
+            } catch (error) {
+                // Ignore mining errors
+            }
         }
     }
 
     async socialize() {
         const nearbyPlayers = Object.keys(this.bot.players).filter(name => name !== this.bot.username);
-        if (nearbyPlayers.length > 0 && this.chatCooldown <= Date.now()) {
-            this.smartChat();
+        if (nearbyPlayers.length > 0) {
+            console.log(`👥 ${this.config.username} socializing...`);
+            
+            if (this.chatCooldown <= Date.now()) {
+                this.smartChat();
+            }
         }
     }
 
     async buildStructure() {
         console.log(`🏗️ ${this.config.username} building...`);
-        for (let i = 0; i < 4; i++) {
+        
+        for (let i = 0; i < 3; i++) {
             this.bot.setControlState('forward', true);
             await delay(1000 + Math.random() * 2000);
             this.bot.setControlState('forward', false);
@@ -673,7 +538,8 @@ class UltimateBot {
 
     async farmAction() {
         console.log(`🌱 ${this.config.username} farming...`);
-        for (let i = 0; i < 3; i++) {
+        
+        for (let i = 0; i < 2; i++) {
             this.bot.setControlState('sneak', true);
             await delay(1000 + Math.random() * 1500);
             this.bot.setControlState('sneak', false);
@@ -681,22 +547,12 @@ class UltimateBot {
         }
     }
 
-    async findFood() {
-        console.log(`🍎 ${this.config.username} finding food...`);
-        const food = this.bot.inventory.items().find(item => item.name.includes('apple') || item.name.includes('bread'));
-        if (food) {
-            try {
-                await this.bot.equip(food, 'hand');
-                await this.bot.consume();
-                console.log(`🍽️ ${this.config.username} ate ${food.name}`);
-            } catch (error) {}
-        }
-    }
-
     async lookAround() {
         if (!this.bot.entity) return;
+        
         const originalYaw = this.bot.entity.yaw;
         const originalPitch = this.bot.entity.pitch;
+        
         for (let i = 0; i < 3; i++) {
             const yaw = originalYaw + (Math.random() * 1.5 - 0.75);
             const pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, originalPitch + (Math.random() * 0.8 - 0.4)));
@@ -706,13 +562,21 @@ class UltimateBot {
     }
 
     performHumanBehavior() {
-        const behaviors = [() => this.lookAround(), () => this.jumpRandomly(), () => this.switchItems()];
+        if (this.isSleeping) return;
+        
+        const behaviors = [
+            () => this.lookAround(),
+            () => this.jumpRandomly(),
+            () => this.switchItems(),
+            () => this.sneakBriefly()
+        ];
+
         const behavior = behaviors[Math.floor(Math.random() * behaviors.length)];
         behavior();
     }
 
     async jumpRandomly() {
-        const jumps = 1 + Math.floor(Math.random() * 4);
+        const jumps = 1 + Math.floor(Math.random() * 3);
         for (let i = 0; i < jumps; i++) {
             this.bot.setControlState('jump', true);
             await delay(100 + Math.random() * 200);
@@ -727,6 +591,14 @@ class UltimateBot {
             const randomItem = items[Math.floor(Math.random() * items.length)];
             this.bot.equip(randomItem, 'hand').catch(() => {});
             await delay(500 + Math.random() * 1000);
+        }
+    }
+
+    async sneakBriefly() {
+        if (Math.random() < 0.3) {
+            this.bot.setControlState('sneak', true);
+            await delay(1500 + Math.random() * 2000);
+            this.bot.setControlState('sneak', false);
         }
     }
 
@@ -748,10 +620,10 @@ class UltimateBot {
         const lowerMessage = message.toLowerCase();
         if (this.config.personality === 'agent') {
             if (lowerMessage.includes('help')) return "Agent assisting! Mission underway!";
-            if (lowerMessage.includes('sleep') || lowerMessage.includes('bed')) return "Setting up tactical sleeping quarters!";
+            if (lowerMessage.includes('sleep')) return "Sleep protocol activated when night comes!";
         } else {
             if (lowerMessage.includes('help')) return "I can help! What do you need?";
-            if (lowerMessage.includes('sleep') || lowerMessage.includes('bed')) return "Setting up a cozy sleeping spot!";
+            if (lowerMessage.includes('sleep')) return "I sleep when it gets dark!";
         }
         const responses = ['Hello!', 'Hi there!', 'Nice to see you!', 'What\'s up?'];
         return responses[Math.floor(Math.random() * responses.length)];
@@ -759,19 +631,22 @@ class UltimateBot {
 
     smartChat() {
         if (this.chatCooldown > Date.now()) return;
+        
         const context = this.assessEnvironment();
         let phrase;
+
         if (context.isNight) {
             phrase = this.config.personality === 'agent' 
-                ? "Night operations! Establishing sleeping quarters!" 
-                : "Peaceful night! Time to set up my bed!";
-        } else if (context.nearbyPlayers > 2) {
+                ? "Night patrol! Time to sleep!" 
+                : "Peaceful night! Bedtime soon!";
+        } else if (context.nearbyPlayers > 1) {
             phrase = this.config.personality === 'agent' 
                 ? "Multiple contacts detected. Monitoring." 
                 : "So many friendly players around today!";
         } else {
             phrase = this.chatPhrases[Math.floor(Math.random() * this.chatPhrases.length)];
         }
+
         console.log(`💬 ${this.config.username} chat: ${phrase}`);
         this.safeChat(phrase);
         this.chatCooldown = Date.now() + 4000;
@@ -791,51 +666,50 @@ class UltimateBot {
         const context = this.assessEnvironment();
         if (context.isNight && !this.sleepPriority) {
             this.sleepPriority = true;
-            console.log(`🌙 ${this.config.username} night detected, activating sleep priority`);
-        }
-        if (!context.isNight && this.bot.isSleeping) {
-            this.bot.wake();
-            this.sleepPriority = false;
         }
     }
 
     handleHealthManagement() {
-        if (this.bot.food < 12) {
+        if (this.bot.food < 15) {
             this.findFood();
+        }
+    }
+
+    async findFood() {
+        const food = this.bot.inventory.items().find(item => 
+            item.name.includes('apple') || item.name.includes('bread') || item.name.includes('cooked')
+        );
+        
+        if (food) {
+            try {
+                await this.bot.equip(food, 'hand');
+                await this.bot.consume();
+                console.log(`🍽️ ${this.config.username} ate ${food.name}`);
+            } catch (error) {
+                // Ignore eating errors
+            }
         }
     }
 
     handleDeath() {
         const deathMessages = this.config.personality === 'agent' 
-            ? ["Mission failed! Will return!", "Tactical retreat! Regrouping!", "Agent down! Reinforcements needed!"]
-            : ["Oh no! I'll be back!", "That hurt! Time to respawn!", "Back to farming soon!"];
+            ? ["Mission failed! Will return!", "Tactical retreat! Regrouping!"]
+            : ["Oh no! I'll be back!", "That hurt! Time to respawn!"];
+        
         const message = deathMessages[Math.floor(Math.random() * deathMessages.length)];
         setTimeout(() => this.safeChat(message), 2000);
+        
         this.hasBed = false;
         this.bedPosition = null;
         this.sleepPriority = false;
-        this.creativeModeEnabled = false;
-    }
-
-    checkBedStatus() {
-        if (this.hasBed && this.bedPosition) {
-            const bedBlock = this.bot.blockAt(this.bedPosition);
-            if (!bedBlock || !bedBlock.name.includes('bed')) {
-                console.log(`⚠️ ${this.config.username} bed missing at saved position`);
-                this.hasBed = false;
-                this.bedPosition = null;
-            }
-        }
-        const context = this.assessEnvironment();
-        if (context.isNight && !this.sleepPriority) {
-            this.sleepPriority = true;
-        }
+        this.isSleeping = false;
     }
 
     assessEnvironment() {
         const time = this.bot.time ? this.bot.time.timeOfDay : 0;
         const isNight = time > 13000 && time < 23000;
         const nearbyPlayers = Object.keys(this.bot.players).length - 1;
+
         return {
             time,
             isNight,
@@ -843,11 +717,6 @@ class UltimateBot {
             food: this.bot.food || 20,
             nearbyPlayers
         };
-    }
-
-    recordActivity(type) {
-        this.activities.push({ type, timestamp: new Date().toISOString() });
-        if (this.activities.length > 50) this.activities.shift();
     }
 
     handleDisconnection() {
@@ -869,6 +738,8 @@ class UltimateBot {
         this.behaviorIntervals = [];
     }
 }
+
+// ... (RotationSystem remains the same as previous versions)
 
 class UltimateRotationSystem {
     constructor() {
@@ -921,8 +792,8 @@ class UltimateRotationSystem {
         console.log(`║ 🤖 Bot: ${botConfig.username.padEnd(26)} ║`);
         console.log(`║ 🌍 Location: ${ipInfo.country.padEnd(23)} ║`);
         console.log(`║ 📍 IP: ${ipInfo.ip.padEnd(31)} ║`);
-        console.log(`║ 🛏️ Multi-Method Beds: Creative + World Search     ║`);
-        console.log(`║ 🎯 Smart Sleep: Auto Bed Management               ║`);
+        console.log(`║ 🛏️ WORKING SLEEP: Actually moves and sleeps       ║`);
+        console.log(`║ ⚡ ACTIVE SYSTEM: No more AFK standing            ║`);
         console.log(`╚══════════════════════════════════════════════════╝\n`);
 
         this.currentBot = new UltimateBot(botConfig);
@@ -936,7 +807,7 @@ class UltimateRotationSystem {
         const sessionTime = botConfig.sessionDuration + (Math.random() * 60 * 60 * 1000);
         const hours = Math.round(sessionTime / 3600000 * 10) / 10;
         console.log(`\n⏰ ${botConfig.username} session: ${hours} hours`);
-        console.log(`🎯 Features: Multi-Method Beds • Smart Sleep • Auto Bed Management\n`);
+        console.log(`🎯 Features: ACTIVE MOVEMENT • WORKING SLEEP • NO AFK\n`);
 
         await delay(sessionTime);
 
@@ -991,7 +862,7 @@ const healthServer = http.createServer((req, res) => {
             rotationCount: rotationSystem.rotationHistory.length,
             uptime: Math.floor(process.uptime()) + ' seconds',
             timestamp: new Date().toISOString(),
-            features: 'Multi-Method Beds • Smart Sleep • Auto Bed Management'
+            features: 'ACTIVE MOVEMENT • WORKING SLEEP • NO AFK'
         }));
     } else {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
