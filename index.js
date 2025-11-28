@@ -1029,28 +1029,51 @@ class UltimateRotationSystem {
 // Start the ultimate rotation system
 const rotationSystem = new UltimateRotationSystem();
 
-// Global error handling
+// === ADD HEALTH CHECK SERVER HERE ===
+const http = require('http');
+const healthServer = http.createServer((req, res) => {
+    if (req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            status: 'healthy',
+            service: 'Minecraft Bot Rotation System',
+            currentBot: rotationSystem.currentBot ? rotationSystem.currentBot.config.username : 'None',
+            rotationCount: rotationSystem.rotationHistory.length,
+            uptime: Math.floor(process.uptime()) + ' seconds',
+            timestamp: new Date().toISOString()
+        }));
+    } else {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('Minecraft Bot Rotation System - 24/7 Operation\n\nVisit /health for status');
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+healthServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`🌐 Health check server running on port ${PORT}`);
+    console.log(`🔍 Render can now monitor: http://localhost:${PORT}/health`);
+});
+
+// === MODIFIED GRACEFUL SHUTDOWN ===
+const gracefulShutdown = async () => {
+    console.log('\n🛑 Shutting down Ultimate Rotation System...');
+    if (rotationSystem.currentBot) {
+        rotationSystem.currentBot.disconnect();
+    }
+    healthServer.close(() => {
+        console.log('✅ Health server closed');
+        process.exit(0);
+    });
+};
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+
+// Global error handling (keep this at the very end)
 process.on('uncaughtException', (error) => {
     console.log('🚨 Uncaught Exception:', error.message);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
     console.log('🚨 Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-// Graceful shutdown
-process.on('SIGINT', async () => {
-    console.log('\n🛑 Shutting down Ultimate Rotation System...');
-    if (rotationSystem.currentBot) {
-        rotationSystem.currentBot.disconnect();
-    }
-    process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-    console.log('\n🛑 Rotation System Termination...');
-    if (rotationSystem.currentBot) {
-        rotationSystem.currentBot.disconnect();
-    }
-    process.exit(0);
 });
