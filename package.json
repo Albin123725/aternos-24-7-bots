@@ -1,10 +1,12 @@
 {
   "name": "aternos-ultimate-rotation",
-  "version": "2.4.0",
-  "description": "Ultimate 24/7 Minecraft bot rotation system with bed breaking",
+  "version": "3.0.0",
+  "description": "Ultimate 24/7 Minecraft bot rotation system with creative mode sleep",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "node index.js",
+    "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
     "mineflayer": "^4.15.1"
@@ -15,9 +17,12 @@
     "aternos", 
     "24-7",
     "rotation",
-    "bed-breaking",
+    "creative-mode",
     "auto-sleep"
   ],
   "author": "Your Name",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  }
 }
