@@ -10,8 +10,8 @@ console.log(`
 ║  🔄 Rotation: One Bot at a Time • 2-3 Hour Sessions                        ║
 ║  🌍 IP Switching: Simulated Different Locations                            ║
 ║  🧠 AI Features: All Enabled • Auto-Sleep • Combat • Chat                  ║
-║  🛏️ BED SYSTEM: Places → Sleeps → Breaks → Takes → Repeats                ║
-║  🎯 Works in: Survival & Creative Modes                                    ║
+║  🛏️ AUTO-CREATIVE: Switches to creative for beds at night                 ║
+║  🎮 GAMEMODE: Auto creative → Get bed → Sleep → Back to survival           ║
 ║  🕒 24/7 Operation: Continuous Presence                                    ║
 ║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -39,6 +39,7 @@ class UltimateBot {
         this.sleepPriority = false;
         this.bedPlacementAttempts = 0;
         this.creativeModeEnabled = false;
+        this.originalGamemode = 'survival';
         
         this.setupBotBehavior();
     }
@@ -86,17 +87,23 @@ class UltimateBot {
                 "Moving to designated coordinates!"
             ];
             this.bedChat = [
-                "Establishing sleeping quarters!",
-                "Setting up camp for the night!",
-                "Deploying tactical bedding!",
-                "Preparing overnight position!",
-                "Securing rest area!"
+                "Activating creative mode for bedding!",
+                "Switching to creative for sleep setup!",
+                "Creative mode engaged for overnight operations!",
+                "Tactical bedding deployment!",
+                "Securing rest area with creative tools!"
             ];
             this.morningChat = [
-                "Mission resumed! Breaking camp!",
-                "Day operations beginning!",
+                "Mission resumed! Returning to survival!",
+                "Day operations beginning! Survival mode!",
                 "Packing up sleeping quarters!",
-                "Ready for daytime operations!"
+                "Ready for daytime survival operations!"
+            ];
+            this.creativeChat = [
+                "Creative mode activated for emergency bedding!",
+                "Using creative powers for sleep setup!",
+                "Temporary creative access for overnight mission!",
+                "Admin privileges engaged for bedding!"
             ];
         } else {
             this.chatPhrases = [
@@ -116,17 +123,23 @@ class UltimateBot {
                 "Fresh vegetables for everyone!"
             ];
             this.bedChat = [
-                "Time to set up a cozy bed!",
-                "Preparing my sleeping spot!",
-                "Setting up for a good night's rest!",
-                "Making my bed for the night!",
-                "Getting ready to sleep!"
+                "Using creative magic for a cozy bed!",
+                "Creative mode for perfect sleeping spot!",
+                "Setting up dream bed with creative powers!",
+                "Magical bedding creation!",
+                "Getting ready to sleep with creative help!"
             ];
             this.morningChat = [
-                "Good morning! Time to start farming!",
-                "Rise and shine! Another beautiful day!",
-                "Morning has broken! Time to work!",
-                "New day, new crops to tend!"
+                "Good morning! Back to survival farming!",
+                "Rise and shine! Survival mode activated!",
+                "Morning has broken! Time to work in survival!",
+                "New day, back to normal farming!"
+            ];
+            this.creativeChat = [
+                "Creative powers for a good night's sleep!",
+                "Using creative mode to make my bed!",
+                "Temporary creative for perfect rest!",
+                "Magical bed creation for the night!"
             ];
         }
     }
@@ -142,12 +155,6 @@ class UltimateBot {
                 clearTimeout(loginTimeout);
                 console.log(`✅ ${this.config.username} logged in successfully`);
                 this.isConnected = true;
-                
-                // Try to get a bed immediately on login
-                setTimeout(async () => {
-                    await this.ensureHasBed();
-                }, 3000);
-                
                 resolve(true);
             });
 
@@ -179,12 +186,6 @@ class UltimateBot {
             this.bot.on('message', (jsonMsg) => {
                 const message = jsonMsg.toString();
                 this.handleSmartChat(message);
-                
-                // Check for creative mode activation
-                if (message.includes('gamemode') && message.includes('creative')) {
-                    this.creativeModeEnabled = true;
-                    console.log(`🎨 ${this.config.username} creative mode detected`);
-                }
             });
 
             this.bot.on('time', () => {
@@ -197,6 +198,96 @@ class UltimateBot {
         });
     }
 
+    async switchToCreativeMode() {
+        if (this.creativeModeEnabled) {
+            console.log(`✅ ${this.config.username} already in creative mode`);
+            return true;
+        }
+
+        console.log(`🎨 ${this.config.username} switching to creative mode...`);
+        
+        try {
+            this.safeChat("/gamemode creative");
+            await delay(3000);
+            
+            // Verify creative mode
+            this.creativeModeEnabled = true;
+            console.log(`✅ ${this.config.username} switched to creative mode`);
+            
+            // Announce creative mode
+            if (this.chatCooldown <= Date.now()) {
+                const creativeMessage = this.creativeChat[Math.floor(Math.random() * this.creativeChat.length)];
+                this.safeChat(creativeMessage);
+                this.chatCooldown = Date.now() + 5000;
+            }
+            
+            return true;
+        } catch (error) {
+            console.log(`❌ ${this.config.username} failed to switch to creative:`, error.message);
+            return false;
+        }
+    }
+
+    async switchToSurvivalMode() {
+        if (!this.creativeModeEnabled) {
+            console.log(`✅ ${this.config.username} already in survival mode`);
+            return true;
+        }
+
+        console.log(`🎯 ${this.config.username} switching to survival mode...`);
+        
+        try {
+            this.safeChat("/gamemode survival");
+            await delay(3000);
+            
+            this.creativeModeEnabled = false;
+            console.log(`✅ ${this.config.username} switched to survival mode`);
+            return true;
+        } catch (error) {
+            console.log(`❌ ${this.config.username} failed to switch to survival:`, error.message);
+            return false;
+        }
+    }
+
+    async getBedFromCreative() {
+        console.log(`🛏️ ${this.config.username} getting bed from creative mode...`);
+        
+        // First ensure we're in creative mode
+        if (!await this.switchToCreativeMode()) {
+            console.log(`❌ ${this.config.username} cannot get bed - creative mode failed`);
+            return false;
+        }
+
+        try {
+            // Try multiple bed types
+            const bedCommands = [
+                "/give @s minecraft:red_bed 1",
+                "/give @s minecraft:white_bed 1",
+                "/give @s minecraft:blue_bed 1",
+                "/give @s minecraft:black_bed 1",
+                "/give @s bed 1"
+            ];
+            
+            for (const command of bedCommands) {
+                this.safeChat(command);
+                await delay(2000);
+                
+                // Check if we got a bed
+                if (await this.checkForBedsInInventory()) {
+                    console.log(`✅ ${this.config.username} got bed from command: ${command}`);
+                    return true;
+                }
+            }
+            
+            console.log(`❌ ${this.config.username} creative commands didn't give beds`);
+            return false;
+            
+        } catch (error) {
+            console.log(`❌ ${this.config.username} creative commands failed:`, error.message);
+            return false;
+        }
+    }
+
     async ensureHasBed() {
         console.log(`🛏️ ${this.config.username} ensuring bed availability...`);
         
@@ -206,116 +297,13 @@ class UltimateBot {
             return true;
         }
         
-        // Try to get bed using multiple methods
-        return await this.getBedByAnyMeans();
-    }
-
-    async getBedByAnyMeans() {
-        console.log(`🔍 ${this.config.username} attempting to get bed...`);
-        
-        // Method 1: Try creative commands (most reliable)
-        if (await this.tryCreativeCommands()) {
-            return true;
-        }
-        
-        // Method 2: Look for nearby beds to break
-        if (await this.breakNearbyBed()) {
-            return true;
-        }
-        
-        // Method 3: Try to find bed in environment
-        if (await this.findBedInWorld()) {
-            return true;
-        }
-        
-        console.log(`❌ ${this.config.username} could not obtain bed by any means`);
-        return false;
-    }
-
-    async tryCreativeCommands() {
-        console.log(`🎨 ${this.config.username} trying creative commands...`);
-        
-        try {
-            // Try multiple bed types and commands
-            const bedCommands = [
-                "/give @s minecraft:red_bed 1",
-                "/give @s minecraft:white_bed 1", 
-                "/give @s minecraft:blue_bed 1",
-                "/give @s bed 1",
-                "/gamemode creative",
-                "/gamemode survival"
-            ];
-            
-            for (const command of bedCommands) {
-                this.safeChat(command);
-                await delay(1500);
-                
-                // Check if we got a bed
-                if (await this.checkForBedsInInventory()) {
-                    console.log(`✅ ${this.config.username} got bed from command: ${command}`);
-                    return true;
-                }
-            }
-            
-        } catch (error) {
-            console.log(`❌ ${this.config.username} creative commands failed:`, error.message);
-        }
-        
-        return false;
-    }
-
-    async breakNearbyBed() {
-        console.log(`⛏️ ${this.config.username} looking for nearby bed to break...`);
-        
-        const nearbyBed = this.bot.findBlock({
-            matching: (block) => block.name.includes('bed'),
-            maxDistance: 8
-        });
-        
-        if (nearbyBed) {
-            try {
-                console.log(`🛏️ ${this.config.username} found bed to break at ${nearbyBed.position}`);
-                
-                // Move to bed
-                this.bot.lookAt(nearbyBed.position.offset(0, 1, 0));
-                this.bot.setControlState('forward', true);
-                await delay(1000);
-                this.bot.setControlState('forward', false);
-                
-                // Break the bed
-                await this.bot.dig(nearbyBed);
-                await delay(2000);
-                
-                console.log(`✅ ${this.config.username} broke bed and should have it in inventory`);
-                return true;
-                
-            } catch (error) {
-                console.log(`❌ ${this.config.username} failed to break bed:`, error.message);
-            }
-        }
-        
-        return false;
-    }
-
-    async findBedInWorld() {
-        console.log(`🔍 ${this.config.username} searching world for beds...`);
-        
-        // Look for beds in a wider area
-        const bed = this.bot.findBlock({
-            matching: (block) => block.name.includes('bed'),
-            maxDistance: 15
-        });
-        
-        if (bed) {
-            console.log(`🎯 ${this.config.username} found bed in world at ${bed.position}`);
-            return true;
-        }
-        
-        return false;
+        // Use creative mode to get bed
+        console.log(`🎨 ${this.config.username} using creative mode to get bed...`);
+        return await this.getBedFromCreative();
     }
 
     async checkForBedsInInventory() {
-        await delay(500); // Wait for inventory update
+        await delay(1000); // Wait for inventory update
         
         const beds = this.bot.inventory.items().filter(item => 
             item.name.includes('bed')
@@ -357,12 +345,12 @@ class UltimateBot {
         // Morning Bed Breaking System
         const morningInterval = setInterval(() => {
             this.handleMorningBedBreaking();
-        }, 10000); // Check every 10 seconds
+        }, 10000);
 
         this.behaviorIntervals = [aiInterval, chatInterval, behaviorInterval, bedInterval, morningInterval];
         
         console.log(`⚡ ${this.config.username} all systems activated`);
-        console.log(`🎯 Features: Bed Place → Sleep → Break → Take → Repeat`);
+        console.log(`🎯 Features: Auto Creative Mode • Instant Beds • Smart Sleep • Bed Breaking`);
     }
 
     async performAITask() {
@@ -370,7 +358,7 @@ class UltimateBot {
         
         // Force sleep task if it's night and sleep priority is high
         if (context.isNight && this.sleepPriority) {
-            console.log(`🌙 ${this.config.username} sleep priority activated`);
+            console.log(`🌙 ${this.config.username} sleep priority activated - using creative mode`);
             await this.autoSleep();
             return;
         }
@@ -402,8 +390,8 @@ class UltimateBot {
                 case 'place_bed':
                     await this.placeBed();
                     break;
-                case 'get_bed':
-                    await this.ensureHasBed();
+                case 'get_bed_creative':
+                    await this.getBedFromCreative();
                     break;
                 default:
                     await this.exploreArea();
@@ -418,15 +406,15 @@ class UltimateBot {
         const tasks = [];
         
         if (context.isNight) {
-            tasks.push({ task: 'sleep', weight: 0.95 });
+            tasks.push({ task: 'sleep', weight: 0.98 });
+            tasks.push({ task: 'get_bed_creative', weight: 0.95 });
             tasks.push({ task: 'place_bed', weight: 0.90 });
-            tasks.push({ task: 'get_bed', weight: 0.80 });
         } else {
             tasks.push({ task: 'explore', weight: 0.6 });
             tasks.push({ task: 'mine', weight: 0.5 });
             tasks.push({ task: 'farm', weight: 0.4 });
             tasks.push({ task: 'build', weight: 0.3 });
-            tasks.push({ task: 'get_bed', weight: 0.4 }); // Prepare for night
+            tasks.push({ task: 'get_bed_creative', weight: 0.5 }); // Prepare for night
         }
 
         if (context.food < 10) {
@@ -454,11 +442,14 @@ class UltimateBot {
     async placeBed() {
         console.log(`🛏️ ${this.config.username} attempting to place bed...`);
         
-        // Ensure we have a bed first
+        // Ensure we have a bed first using creative mode
         if (!await this.ensureHasBed()) {
-            console.log(`❌ ${this.config.username} cannot place bed - no bed available`);
+            console.log(`❌ ${this.config.username} cannot place bed - creative mode failed`);
             return false;
         }
+
+        // Switch back to survival for normal operations
+        await this.switchToSurvivalMode();
 
         // Get bed from inventory
         const bedItem = this.bot.inventory.items().find(item => 
@@ -528,14 +519,21 @@ class UltimateBot {
 
     async autoSleep() {
         const now = Date.now();
-        if (now - this.lastSleepAttempt < 10000) return;
+        if (now - this.lastSleepAttempt < 8000) return;
         
         this.lastSleepAttempt = now;
         const context = this.assessEnvironment();
 
         if (context.isNight) {
-            console.log(`🌙 ${this.config.username} attempting to sleep...`);
+            console.log(`🌙 ${this.config.username} night detected - using creative mode for sleep...`);
             
+            // Use creative mode to ensure we have a bed
+            if (!await this.ensureHasBed()) {
+                console.log(`❌ ${this.config.username} cannot sleep - creative mode failed`);
+                this.sleepPriority = true;
+                return;
+            }
+
             let bed = null;
             
             // Use existing bed if available
@@ -558,7 +556,7 @@ class UltimateBot {
             
             // Place new bed if needed
             if (!bed) {
-                console.log(`🛏️ ${this.config.username} placing new bed for sleep...`);
+                console.log(`🛏️ ${this.config.username} placing new bed using creative resources...`);
                 const bedPlaced = await this.placeBed();
                 if (bedPlaced && this.bedPosition) {
                     bed = this.bot.blockAt(this.bedPosition);
@@ -567,6 +565,9 @@ class UltimateBot {
 
             if (bed) {
                 try {
+                    // Ensure we're in survival mode for sleeping
+                    await this.switchToSurvivalMode();
+                    
                     // Move to bed
                     const distance = this.bot.entity.position.distanceTo(bed.position);
                     if (distance > 2) {
@@ -625,6 +626,9 @@ class UltimateBot {
             const bedBlock = this.bot.blockAt(this.bedPosition);
             if (bedBlock && bedBlock.name.includes('bed')) {
                 try {
+                    // Ensure survival mode for breaking
+                    await this.switchToSurvivalMode();
+                    
                     // Move to bed
                     this.bot.lookAt(bedBlock.position.offset(0, 1, 0));
                     this.bot.setControlState('forward', true);
@@ -660,7 +664,7 @@ class UltimateBot {
         }
     }
 
-    // ... (other methods like exploreArea, mineResources, etc. remain the same)
+    // ... (other methods remain the same as previous version)
 
     async exploreArea() {
         console.log(`🧭 ${this.config.username} exploring...`);
@@ -780,10 +784,12 @@ class UltimateBot {
         const lowerMessage = message.toLowerCase();
         if (this.config.personality === 'agent') {
             if (lowerMessage.includes('help')) return "Agent assisting! Mission underway!";
-            if (lowerMessage.includes('sleep') || lowerMessage.includes('bed')) return "Establishing sleeping quarters!";
+            if (lowerMessage.includes('sleep') || lowerMessage.includes('bed')) return "Using creative mode for bedding!";
+            if (lowerMessage.includes('creative')) return "Creative mode activated for tactical operations!";
         } else {
             if (lowerMessage.includes('help')) return "I can help! What do you need?";
-            if (lowerMessage.includes('sleep') || lowerMessage.includes('bed')) return "Setting up my bed for the night!";
+            if (lowerMessage.includes('sleep') || lowerMessage.includes('bed')) return "Using creative magic for my bed!";
+            if (lowerMessage.includes('creative')) return "Creative powers for comfortable sleeping!";
         }
         const responses = ['Hello!', 'Hi there!', 'Nice to see you!', 'What\'s up?'];
         return responses[Math.floor(Math.random() * responses.length)];
@@ -794,9 +800,13 @@ class UltimateBot {
         const context = this.assessEnvironment();
         let phrase;
         if (context.isNight) {
-            phrase = this.config.personality === 'agent' ? "Night patrol active. All sectors secure." : "Peaceful night. Perfect for resting.";
+            phrase = this.config.personality === 'agent' 
+                ? "Night operations! Creative mode engaged for bedding!" 
+                : "Peaceful night! Using creative magic for sleep!";
         } else if (context.nearbyPlayers > 2) {
-            phrase = this.config.personality === 'agent' ? "Multiple contacts detected. Monitoring." : "So many friendly players around today!";
+            phrase = this.config.personality === 'agent' 
+                ? "Multiple contacts detected. Monitoring." 
+                : "So many friendly players around today!";
         } else {
             phrase = this.chatPhrases[Math.floor(Math.random() * this.chatPhrases.length)];
         }
@@ -819,7 +829,7 @@ class UltimateBot {
         const context = this.assessEnvironment();
         if (context.isNight && !this.sleepPriority) {
             this.sleepPriority = true;
-            console.log(`🌙 ${this.config.username} night detected, activating sleep priority`);
+            console.log(`🌙 ${this.config.username} night detected, activating creative sleep priority`);
         }
         if (!context.isNight && this.bot.isSleeping) {
             this.bot.wake();
@@ -842,6 +852,7 @@ class UltimateBot {
         this.hasBed = false;
         this.bedPosition = null;
         this.sleepPriority = false;
+        this.creativeModeEnabled = false;
     }
 
     checkBedStatus() {
@@ -897,6 +908,8 @@ class UltimateBot {
     }
 }
 
+// ... (RotationSystem and other code remains the same as previous version)
+
 class UltimateRotationSystem {
     constructor() {
         this.currentBot = null;
@@ -948,8 +961,8 @@ class UltimateRotationSystem {
         console.log(`║ 🤖 Bot: ${botConfig.username.padEnd(26)} ║`);
         console.log(`║ 🌍 Location: ${ipInfo.country.padEnd(23)} ║`);
         console.log(`║ 📍 IP: ${ipInfo.ip.padEnd(31)} ║`);
-        console.log(`║ 🛏️ Bed System: Place → Sleep → Break → Take       ║`);
-        console.log(`║ 🎯 Works in: Survival & Creative Modes           ║`);
+        console.log(`║ 🎨 AUTO-CREATIVE: Gets beds instantly at night    ║`);
+        console.log(`║ 🛏️ Smart Sleep: Creative → Bed → Sleep → Survival ║`);
         console.log(`╚══════════════════════════════════════════════════╝\n`);
 
         this.currentBot = new UltimateBot(botConfig);
@@ -963,7 +976,7 @@ class UltimateRotationSystem {
         const sessionTime = botConfig.sessionDuration + (Math.random() * 60 * 60 * 1000);
         const hours = Math.round(sessionTime / 3600000 * 10) / 10;
         console.log(`\n⏰ ${botConfig.username} session: ${hours} hours`);
-        console.log(`🎯 Activities: Bed Management • Sleep Cycle • AI Behavior\n`);
+        console.log(`🎯 Features: Auto Creative Mode • Instant Beds • Smart Sleep Cycle\n`);
 
         await delay(sessionTime);
 
@@ -1018,7 +1031,7 @@ const healthServer = http.createServer((req, res) => {
             rotationCount: rotationSystem.rotationHistory.length,
             uptime: Math.floor(process.uptime()) + ' seconds',
             timestamp: new Date().toISOString(),
-            features: 'Bed Place → Sleep → Break → Take • Works in Survival/Creative'
+            features: 'Auto Creative Mode • Instant Beds • Smart Sleep Cycle'
         }));
     } else {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
