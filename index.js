@@ -174,10 +174,6 @@ class UltimateBot {
                     this.learnFromCollection(item);
                 }
             });
-
-            this.bot.on('blockUpdate', (oldBlock, newBlock) => {
-                this.handleBlockChange(oldBlock, newBlock);
-            });
         });
     }
 
@@ -272,13 +268,17 @@ class UltimateBot {
         if (context.isNight) {
             tasks.push({ task: 'sleep', weight: 0.7 });
             tasks.push({ task: 'mine', weight: 0.4 });
-            tasks.push({ task: 'combat', weight: context.enemiesNearby ? 0.3 : 0 });
+            if (context.enemiesNearby) {
+                tasks.push({ task: 'combat', weight: 0.3 });
+            }
         } else {
             tasks.push({ task: 'explore', weight: 0.6 });
             tasks.push({ task: 'mine', weight: 0.5 });
             tasks.push({ task: 'farm', weight: 0.4 });
             tasks.push({ task: 'build', weight: 0.3 });
-            tasks.push({ task: 'combat', weight: context.enemiesNearby ? 0.4 : 0 });
+            if (context.enemiesNearby) {
+                tasks.push({ task: 'combat', weight: 0.4 });
+            }
         }
 
         // Health-based tasks
@@ -294,13 +294,17 @@ class UltimateBot {
             tasks.push({ task: 'social', weight: 0.3 });
         }
 
-        // Personality adjustments
+        // Personality adjustments - FIXED: No optional chaining in assignment
         if (this.config.personality === 'agent') {
-            tasks.find(t => t.task === 'combat')?.weight += 0.3;
-            tasks.find(t => t.task === 'explore')?.weight += 0.2;
+            const combatTask = tasks.find(t => t.task === 'combat');
+            const exploreTask = tasks.find(t => t.task === 'explore');
+            if (combatTask) combatTask.weight += 0.3;
+            if (exploreTask) exploreTask.weight += 0.2;
         } else {
-            tasks.find(t => t.task === 'farm')?.weight += 0.3;
-            tasks.find(t => t.task === 'social')?.weight += 0.2;
+            const farmTask = tasks.find(t => t.task === 'farm');
+            const socialTask = tasks.find(t => t.task === 'social');
+            if (farmTask) farmTask.weight += 0.3;
+            if (socialTask) socialTask.weight += 0.2;
         }
 
         const totalWeight = tasks.reduce((sum, t) => sum + (t.weight || 0), 0);
@@ -339,11 +343,12 @@ class UltimateBot {
         console.log(`⛏️ ${this.config.username} mining...`);
         
         const block = this.bot.findBlock({
-            matching: block => 
-                block.name.includes('stone') || 
-                block.name.includes('coal') ||
-                block.name.includes('dirt') ||
-                block.name.includes('wood'),
+            matching: function(block) {
+                return block.name.includes('stone') || 
+                       block.name.includes('coal') ||
+                       block.name.includes('dirt') ||
+                       block.name.includes('wood');
+            },
             maxDistance: 4
         });
         
@@ -359,10 +364,10 @@ class UltimateBot {
     }
 
     async engageCombat() {
-        const enemy = this.bot.nearestEntity(entity => 
-            entity.type === 'mob' && 
-            entity.position.distanceTo(this.bot.entity.position) < 8
-        );
+        const enemy = this.bot.nearestEntity(function(entity) {
+            return entity.type === 'mob' && 
+                   entity.position.distanceTo(this.bot.entity.position) < 8;
+        }.bind(this));
         
         if (enemy) {
             console.log(`⚔️ ${this.config.username} engaging combat!`);
@@ -387,10 +392,10 @@ class UltimateBot {
     autoCombat() {
         if (Date.now() - this.lastCombatTime < 5000) return;
         
-        const enemy = this.bot.nearestEntity(entity => 
-            entity.type === 'mob' && 
-            entity.position.distanceTo(this.bot.entity.position) < 4
-        );
+        const enemy = this.bot.nearestEntity(function(entity) {
+            return entity.type === 'mob' && 
+                   entity.position.distanceTo(this.bot.entity.position) < 4;
+        }.bind(this));
         
         if (enemy) {
             this.bot.attack(enemy);
@@ -410,7 +415,9 @@ class UltimateBot {
             console.log(`🌙 ${this.config.username} attempting to sleep...`);
             
             const bed = this.bot.findBlock({
-                matching: block => block.name.includes('bed'),
+                matching: function(block) {
+                    return block.name.includes('bed');
+                },
                 maxDistance: 6
             });
 
@@ -420,10 +427,10 @@ class UltimateBot {
                     console.log(`😴 ${this.config.username} sleeping peacefully`);
                     
                     // Wait in bed with periodic checks
-                    const maxSleepTime = 10 * 60 * 1000; // Max 10 minutes
+                    const maxSleepTime = 10 * 60 * 1000;
                     const sleepStart = Date.now();
                     
-                    const sleepInterval = setInterval(() => {
+                    const sleepInterval = setInterval(function() {
                         if (!this.bot.isSleeping || Date.now() - sleepStart > maxSleepTime) {
                             clearInterval(sleepInterval);
                             if (this.bot.isSleeping) {
@@ -434,12 +441,12 @@ class UltimateBot {
                         }
                         
                         const currentTime = this.bot.time.timeOfDay;
-                        if (currentTime < 1000) { // Morning
+                        if (currentTime < 1000) {
                             this.bot.wake();
                             clearInterval(sleepInterval);
                             console.log(`🌅 ${this.config.username} woke up at dawn`);
                         }
-                    }, 5000);
+                    }.bind(this), 5000);
                     
                 } catch (error) {
                     console.log(`❌ ${this.config.username} couldn't sleep:`, error.message);
@@ -456,10 +463,11 @@ class UltimateBot {
         
         // Look for natural shelter
         const shelter = this.bot.findBlock({
-            matching: block => 
-                block.name.includes('log') || 
-                block.name.includes('stone') ||
-                block.name.includes('house'),
+            matching: function(block) {
+                return block.name.includes('log') || 
+                       block.name.includes('stone') ||
+                       block.name.includes('house');
+            },
             maxDistance: 12
         });
 
@@ -475,9 +483,9 @@ class UltimateBot {
     }
 
     async socialize() {
-        const nearbyPlayers = Object.keys(this.bot.players).filter(name => 
-            name !== this.bot.username
-        );
+        const nearbyPlayers = Object.keys(this.bot.players).filter(function(name) {
+            return name !== this.bot.username;
+        }.bind(this));
 
         if (nearbyPlayers.length > 0) {
             console.log(`👥 ${this.config.username} socializing with ${nearbyPlayers.length} players`);
@@ -489,7 +497,7 @@ class UltimateBot {
             // Follow nearest player briefly
             if (Math.random() < 0.3) {
                 const targetPlayer = this.bot.players[nearbyPlayers[0]];
-                if (targetPlayer?.entity) {
+                if (targetPlayer && targetPlayer.entity) {
                     this.bot.lookAt(targetPlayer.entity.position);
                     this.bot.setControlState('forward', true);
                     await delay(3000 + Math.random() * 4000);
@@ -538,11 +546,11 @@ class UltimateBot {
     async findFood() {
         console.log(`🍎 ${this.config.username} finding food...`);
         
-        const food = this.bot.inventory.items().find(item => 
-            item.name.includes('apple') || 
-            item.name.includes('bread') ||
-            item.name.includes('cooked')
-        );
+        const food = this.bot.inventory.items().find(function(item) {
+            return item.name.includes('apple') || 
+                   item.name.includes('bread') ||
+                   item.name.includes('cooked');
+        });
         
         if (food) {
             try {
@@ -781,19 +789,16 @@ class UltimateBot {
         setTimeout(() => this.safeChat(message), 2000);
     }
 
-    handleBlockChange(oldBlock, newBlock) {
-        // Learn from environment changes
-        if (newBlock.name.includes('water') || newBlock.name.includes('lava')) {
-            this.learnFromExperience('environment_danger', newBlock.name);
-        }
+    learnFromCollection(item) {
+        this.learnFromExperience('collected', item.name);
     }
 
     manageInventory() {
         const items = this.bot.inventory.items();
         if (items.length > 0) {
-            const tool = items.find(item => 
-                item.name.includes('pickaxe') || item.name.includes('sword') || item.name.includes('axe')
-            );
+            const tool = items.find(function(item) {
+                return item.name.includes('pickaxe') || item.name.includes('sword') || item.name.includes('axe');
+            });
             if (tool) {
                 this.bot.equip(tool, 'hand').catch(() => {});
             }
@@ -813,10 +818,12 @@ class UltimateBot {
         const isNight = time > 13000 && time < 23000;
         const nearbyPlayers = Object.keys(this.bot.players).length - 1;
         
-        const enemiesNearby = this.bot.nearestEntity(entity => 
-            entity.type === 'mob' && 
-            entity.position.distanceTo(this.bot.entity.position) < 12
-        ) !== null;
+        const enemy = this.bot.nearestEntity(function(entity) {
+            return entity.type === 'mob' && 
+                   entity.position.distanceTo(this.bot.entity.position) < 12;
+        }.bind(this));
+        
+        const enemiesNearby = enemy !== null;
 
         return {
             time,
@@ -837,10 +844,6 @@ class UltimateBot {
             const firstKey = this.aiMemory.keys().next().value;
             this.aiMemory.delete(firstKey);
         }
-    }
-
-    learnFromCollection(item) {
-        this.learnFromExperience('collected', item.name);
     }
 
     recordConversation(input, output) {
@@ -902,7 +905,7 @@ class UltimateRotationSystem {
                 port: 51270,
                 version: '1.21.10',
                 personality: 'agent',
-                sessionDuration: 2 * 60 * 60 * 1000 // 2 hours base
+                sessionDuration: 2 * 60 * 60 * 1000
             },
             {
                 username: 'CROPTON',
@@ -910,7 +913,7 @@ class UltimateRotationSystem {
                 port: 51270,
                 version: '1.21.10',
                 personality: 'farmer', 
-                sessionDuration: 2 * 60 * 60 * 1000 // 2 hours base
+                sessionDuration: 2 * 60 * 60 * 1000
             }
         ];
 
@@ -1014,7 +1017,7 @@ class UltimateRotationSystem {
         // Display rotation history
         if (this.rotationHistory.length > 1) {
             console.log(`\n📈 Recent Rotations:`);
-            this.rotationHistory.slice(0, 3).forEach((rot, index) => {
+            this.rotationHistory.slice(0, 3).forEach(function(rot, index) {
                 const mins = Math.round(rot.duration / 60000);
                 console.log(`   ${index + 1}. ${rot.bot} - ${mins}min - ${rot.country}`);
             });
