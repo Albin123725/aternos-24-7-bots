@@ -1,16 +1,15 @@
 {
-  "name": "aternos-24-7-bots",
+  "name": "aternos-bot-rotation-system",
   "version": "1.0.0",
-  "description": "24/7 Bot system with all features",
+  "description": "Advanced bot rotation system with all features",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "mineflayer": "^4.15.1",
-    "vec3": "^0.1.8"
+    "mineflayer": "^4.15.1"
   },
-  "keywords": ["minecraft", "bot", "aternos", "24-7"],
+  "keywords": ["minecraft", "bot", "aternos", "rotation", "ai"],
   "author": "Your Name",
   "license": "MIT"
 }
