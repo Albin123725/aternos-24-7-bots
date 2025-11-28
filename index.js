@@ -12,8 +12,9 @@ console.log(`
 `);
 
 class UltimateBot {
-    constructor(config) {
+    constructor(config, delay = 0) {
         this.config = config;
+        this.delay = delay;
         this.bot = null;
         this.isConnected = false;
         this.activities = [];
@@ -23,21 +24,24 @@ class UltimateBot {
         this.conversationHistory = [];
         this.lastActivityTime = Date.now();
         this.currentTask = 'exploring';
+        this.chatCooldown = 0;
         
-        this.initialize();
+        // Schedule initialization with delay
+        setTimeout(() => {
+            this.initialize();
+        }, this.delay);
     }
 
     initialize() {
         try {
             console.log(`🚀 Initializing ${this.config.username}...`);
             
-            // Use offline mode to avoid Microsoft auth issues
             this.bot = mineflayer.createBot({
                 host: this.config.host,
                 port: this.config.port,
                 username: this.config.username,
                 version: this.config.version,
-                auth: 'offline', // Changed to offline mode
+                auth: 'offline',
                 checkTimeoutInterval: 60 * 1000,
                 logErrors: false,
                 hideErrors: true
@@ -48,7 +52,7 @@ class UltimateBot {
 
         } catch (error) {
             console.log(`❌ Failed to initialize ${this.config.username}:`, error.message);
-            this.scheduleRestart();
+            this.scheduleRestart(30000); // Wait 30 seconds before retry
         }
     }
 
@@ -68,7 +72,15 @@ class UltimateBot {
 
         this.bot.on('kicked', (reason) => {
             console.log(`❌ ${this.config.username} kicked:`, reason);
-            this.handleDisconnection();
+            
+            // Handle login cooldown specifically
+            if (reason.includes('wait') && reason.includes('seconds')) {
+                const waitTime = this.extractWaitTime(reason);
+                console.log(`⏰ ${this.config.username} login cooldown: ${waitTime} seconds`);
+                this.scheduleRestart(waitTime * 1000 + 5000); // Wait cooldown + 5 seconds
+            } else {
+                this.handleDisconnection();
+            }
         });
 
         this.bot.on('error', (err) => {
@@ -115,6 +127,12 @@ class UltimateBot {
                 this.learnFromCollection(item);
             }
         });
+    }
+
+    extractWaitTime(reason) {
+        // Extract wait time from kick message like "You must wait 29 seconds"
+        const match = reason.match(/(\d+)\s+seconds?/);
+        return match ? parseInt(match[1]) : 30;
     }
 
     setupBotBehavior() {
@@ -167,7 +185,7 @@ class UltimateBot {
 
         // Smart chatting system
         setInterval(() => {
-            if (Math.random() < 0.4) {
+            if (Math.random() < 0.4 && this.chatCooldown <= Date.now()) {
                 this.smartChat();
             }
         }, 120000 + Math.random() * 180000);
@@ -275,11 +293,15 @@ class UltimateBot {
 
         // Personality adjustments
         if (this.config.username === 'AGENT') {
-            tasks.find(t => t.task === 'explore').weight += 0.2;
-            tasks.find(t => t.task === 'fight').weight += 0.3;
+            const exploreTask = tasks.find(t => t.task === 'explore');
+            const fightTask = tasks.find(t => t.task === 'fight');
+            if (exploreTask) exploreTask.weight += 0.2;
+            if (fightTask) fightTask.weight += 0.3;
         } else {
-            tasks.find(t => t.task === 'farm').weight += 0.3;
-            tasks.find(t => t.task === 'social').weight += 0.2;
+            const farmTask = tasks.find(t => t.task === 'farm');
+            const socialTask = tasks.find(t => t.task === 'social');
+            if (farmTask) farmTask.weight += 0.3;
+            if (socialTask) socialTask.weight += 0.2;
         }
 
         const totalWeight = tasks.reduce((sum, t) => sum + t.weight, 0);
@@ -298,9 +320,6 @@ class UltimateBot {
         
         const direction = Math.random() * Math.PI * 2;
         const distance = 10 + Math.random() * 25;
-        
-        const targetX = this.bot.entity.position.x + Math.cos(direction) * distance;
-        const targetZ = this.bot.entity.position.z + Math.sin(direction) * distance;
         
         // Simple movement without pathfinder
         this.bot.setControlState('forward', true);
@@ -413,7 +432,7 @@ class UltimateBot {
             console.log(`👥 ${this.config.username} socializing with ${nearbyPlayers.length} players`);
             
             // Greet players
-            if (Math.random() < 0.7) {
+            if (Math.random() < 0.7 && this.chatCooldown <= Date.now()) {
                 this.smartChat();
             }
             
@@ -525,10 +544,13 @@ class UltimateBot {
         // Respond to direct mentions
         if (lowerMessage.includes(this.config.username.toLowerCase())) {
             setTimeout(() => {
-                const response = this.generateSmartResponse(message);
-                console.log(`💬 ${this.config.username} response: ${response}`);
-                this.bot.chat(response);
-                this.recordConversation(message, response);
+                if (this.chatCooldown <= Date.now()) {
+                    const response = this.generateSmartResponse(message);
+                    console.log(`💬 ${this.config.username} response: ${response}`);
+                    this.safeChat(response);
+                    this.recordConversation(message, response);
+                    this.chatCooldown = Date.now() + 5000; // 5 second cooldown
+                }
             }, 1000 + Math.random() * 2000);
         }
 
@@ -540,8 +562,11 @@ class UltimateBot {
         // Auto-greet
         if ((lowerMessage.includes('hello') || lowerMessage.includes('hi ')) && Math.random() < 0.5) {
             setTimeout(() => {
-                const greeting = this.config.username === 'AGENT' ? 'Agent ready!' : 'Hello friend!';
-                this.bot.chat(greeting);
+                if (this.chatCooldown <= Date.now()) {
+                    const greeting = this.config.username === 'AGENT' ? 'Agent ready!' : 'Hello friend!';
+                    this.safeChat(greeting);
+                    this.chatCooldown = Date.now() + 5000;
+                }
             }, 2000 + Math.random() * 3000);
         }
     }
@@ -550,22 +575,35 @@ class UltimateBot {
         const lowerMessage = message.toLowerCase();
         
         if (this.config.username === 'AGENT') {
-            if (lowerMessage.includes('help')) return ["Agent assisting!", "Support deployed!", "On my way!"];
-            if (lowerMessage.includes('where')) return ["Current position: operational", "Location secured", "Area patrolled"];
-            if (lowerMessage.includes('what')) return ["Mission ongoing", "Operations normal", "All systems go"];
-            if (lowerMessage.includes('sleep')) return ["Agent doesn't sleep!", "Always vigilant!", "Mission continues!"];
+            if (lowerMessage.includes('help')) return "Agent assisting!";
+            if (lowerMessage.includes('where')) return "Current position: operational";
+            if (lowerMessage.includes('what')) return "Mission ongoing";
+            if (lowerMessage.includes('sleep')) return "Agent doesn't sleep!";
         } else {
-            if (lowerMessage.includes('help')) return ["I can help!", "What do you need?", "Happy to assist!"];
-            if (lowerMessage.includes('farm')) return ["I love farming!", "Crops are growing!", "Harvest time soon!"];
-            if (lowerMessage.includes('food')) return ["I have bread!", "Hungry? Me too!", "Time for a snack!"];
-            if (lowerMessage.includes('sleep')) return ["Good night!", "Time to rest!", "Sleep well!"];
+            if (lowerMessage.includes('help')) return "I can help!";
+            if (lowerMessage.includes('farm')) return "I love farming!";
+            if (lowerMessage.includes('food')) return "I have bread!";
+            if (lowerMessage.includes('sleep')) return "Good night!";
         }
         
         const responses = ['Hello!', 'Hi there!', 'Nice to see you!', 'What\'s up?', 'How can I help?'];
         return responses[Math.floor(Math.random() * responses.length)];
     }
 
+    safeChat(message) {
+        // Ensure message is a string before sending
+        if (typeof message === 'string' && message.trim().length > 0) {
+            try {
+                this.bot.chat(message);
+            } catch (error) {
+                console.log(`❌ ${this.config.username} chat error:`, error.message);
+            }
+        }
+    }
+
     smartChat() {
+        if (this.chatCooldown > Date.now()) return;
+        
         const context = this.assessEnvironment();
         let phrase;
 
@@ -586,7 +624,8 @@ class UltimateBot {
         }
 
         console.log(`💬 ${this.config.username} chat: ${phrase}`);
-        this.bot.chat(phrase);
+        this.safeChat(phrase);
+        this.chatCooldown = Date.now() + 5000; // 5 second cooldown
     }
 
     performHumanBehavior() {
@@ -707,11 +746,12 @@ class UltimateBot {
     }
 
     handleWeatherChange() {
-        if (Math.random() < 0.5) {
+        if (Math.random() < 0.5 && this.chatCooldown <= Date.now()) {
             const comment = this.config.username === 'AGENT' 
                 ? "Weather conditions changing." 
                 : "Rain is good for crops!";
-            this.bot.chat(comment);
+            this.safeChat(comment);
+            this.chatCooldown = Date.now() + 5000;
         }
     }
 
@@ -724,7 +764,7 @@ class UltimateBot {
             "Well, that happened!"
         ];
         const message = deathMessages[Math.floor(Math.random() * deathMessages.length)];
-        setTimeout(() => this.bot.chat(message), 3000);
+        setTimeout(() => this.safeChat(message), 3000);
     }
 
     manageInventory() {
@@ -784,11 +824,10 @@ class UltimateBot {
 
     handleDisconnection() {
         console.log(`🔄 ${this.config.username} scheduling restart...`);
-        this.scheduleRestart();
+        this.scheduleRestart(15000); // Wait 15 seconds
     }
 
-    scheduleRestart() {
-        const delay = 8000 + Math.random() * 15000;
+    scheduleRestart(delay = 15000) {
         setTimeout(() => {
             console.log(`🔄 Restarting ${this.config.username}...`);
             this.initialize();
@@ -814,7 +853,7 @@ class UltimateBot {
     }
 }
 
-// Bot Configuration
+// Bot Configuration with proper delays
 const botConfigs = [
     {
         username: 'AGENT',
@@ -830,14 +869,16 @@ const botConfigs = [
     }
 ];
 
-// Start bots with delays
-console.log('🎯 Starting ultimate bot system...');
+// Start bots with proper delays to avoid cooldown
+console.log('🎯 Starting ultimate bot system with cooldown protection...');
 
-botConfigs.forEach((config, index) => {
-    setTimeout(() => {
-        new UltimateBot(config);
-    }, index * 10000); // 10 seconds between bots
-});
+// Start AGENT immediately
+new UltimateBot(botConfigs[0], 0);
+
+// Start CROPTON after 35 seconds to avoid login cooldown
+setTimeout(() => {
+    new UltimateBot(botConfigs[1], 0);
+}, 35000);
 
 // Keep the process alive
 setInterval(() => {
