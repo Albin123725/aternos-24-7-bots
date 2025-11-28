@@ -1,7 +1,7 @@
 {
   "name": "aternos-ultimate-rotation",
-  "version": "1.0.0",
-  "description": "Ultimate bot rotation system with auto-bed placement",
+  "version": "2.2.0",
+  "description": "Ultimate 24/7 Minecraft bot rotation system with creative beds",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -9,7 +9,15 @@
   "dependencies": {
     "mineflayer": "^4.15.1"
   },
-  "keywords": ["minecraft", "bot", "aternos", "rotation", "ai", "auto-sleep"],
+  "keywords": [
+    "minecraft",
+    "bot",
+    "aternos", 
+    "24-7",
+    "rotation",
+    "auto-sleep",
+    "creative-beds"
+  ],
   "author": "Your Name",
   "license": "MIT"
 }
