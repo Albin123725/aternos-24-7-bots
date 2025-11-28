@@ -1,6 +1,5 @@
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
-const autoeat = require('mineflayer-auto-eat');
 const Vec3 = require('vec3').Vec3;
 
 console.log(`
@@ -34,7 +33,7 @@ class AdvancedBot {
                 version: this.config.version,
                 auth: this.config.password ? 'microsoft' : 'offline',
                 checkTimeoutInterval: 60 * 1000,
-                logErrors: true
+                logErrors: false
             });
 
             this.setupPlugins();
@@ -48,9 +47,8 @@ class AdvancedBot {
     }
 
     setupPlugins() {
-        // Load essential plugins
+        // Load pathfinder only (removed auto-eat)
         this.bot.loadPlugin(pathfinder);
-        this.bot.loadPlugin(autoeat);
 
         // Configure pathfinder
         const movements = new Movements(this.bot);
@@ -59,14 +57,6 @@ class AdvancedBot {
         movements.canDig = true;
         movements.scafoldingBlocks = [];
         this.bot.pathfinder.setMovements(movements);
-
-        // Configure auto-eat
-        this.bot.autoEat.options = {
-            priority: 'foodPoints',
-            startAt: 16,
-            bannedFood: [],
-            eatingTimeout: 3
-        };
     }
 
     setupEventHandlers() {
@@ -215,7 +205,7 @@ class AdvancedBot {
             await this.bot.pathfinder.goto(goal);
             await this.delay(2000 + Math.random() * 4000);
         } catch (error) {
-            console.log(`🧭 ${this.config.username} exploration failed:`, error.message);
+            // Silent fail - common in exploration
         }
     }
 
@@ -294,6 +284,8 @@ class AdvancedBot {
     }
 
     async lookAround() {
+        if (!this.bot.entity) return;
+        
         const originalYaw = this.bot.entity.yaw;
         const originalPitch = this.bot.entity.pitch;
         
@@ -331,7 +323,7 @@ class AdvancedBot {
     }
 
     handleTimeBasedActions() {
-        const time = this.bot.time.timeOfDay;
+        const time = this.bot.time ? this.bot.time.timeOfDay : 0;
         
         // Sleep at night if bed is available
         if (time > 13000 && time < 23000) {
@@ -356,8 +348,19 @@ class AdvancedBot {
     }
 
     handleHealthCheck() {
-        if (this.bot.food < 15) {
-            this.bot.autoEat.eat().catch(() => {});
+        // Simple health management without auto-eat
+        if (this.bot.food < 10) {
+            // Try to eat any food in inventory
+            const food = this.bot.inventory.items().find(item => 
+                item.name.includes('apple') || 
+                item.name.includes('bread') ||
+                item.name.includes('cooked')
+            );
+            if (food) {
+                this.bot.equip(food, 'hand').then(() => {
+                    this.bot.consume();
+                }).catch(() => {});
+            }
         }
     }
 
