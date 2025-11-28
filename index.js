@@ -9,7 +9,7 @@ console.log(`
 ║  ⚡ Version: 1.21.10                                                        ║
 ║  🔄 Rotation: One Bot at a Time • 2-3 Hour Sessions                        ║
 ║  🧠 AI Features: Realistic Day Activities • Immediate Night Sleep          ║
-║  🛏️ WORKING SLEEP: Proper creative inventory access                       ║
+║  🛏️ WORKING SLEEP: Correct /give commands with bot names                  ║
 ║  🎯 NO CHAT: Focus on gameplay only                                        ║
 ║  🕒 24/7 Operation: Continuous Presence                                    ║
 ║                                                                              ║
@@ -230,9 +230,9 @@ class UltimateBot {
             return;
         }
         
-        // Step 3: Get bed using creative commands (simpler approach)
+        // Step 3: Get bed using creative commands with CORRECT FORMAT
         console.log(`🎒 ${this.config.username} getting bed...`);
-        const gotBed = await this.getBedSimple();
+        const gotBed = await this.getBedWithCorrectCommands();
         
         if (gotBed) {
             // Step 4: Place bed immediately
@@ -249,21 +249,26 @@ class UltimateBot {
         }
     }
 
-    async getBedSimple() {
-        // Simple approach: Use creative commands to get bed
-        console.log(`💬 ${this.config.username} using creative commands for bed...`);
+    async getBedWithCorrectCommands() {
+        console.log(`💬 ${this.config.username} using CORRECT creative commands for bed...`);
         
+        // CORRECT COMMAND FORMAT: /give USERNAME bed_type
         const commands = [
-            "/give @s bed 1",
-            "/give @s white_bed 1",
-            "/give @s red_bed 1",
-            "/give @s black_bed 1"
+            `/give ${this.config.username} light_blue_bed 1`,
+            `/give ${this.config.username} white_bed 1`,
+            `/give ${this.config.username} red_bed 1`,
+            `/give ${this.config.username} black_bed 1`,
+            `/give ${this.config.username} blue_bed 1`,
+            `/give ${this.config.username} brown_bed 1`,
+            `/give ${this.config.username} green_bed 1`,
+            `/give ${this.config.username} bed 1`
         ];
         
         for (const command of commands) {
             try {
+                console.log(`📝 ${this.config.username} executing: ${command}`);
                 this.bot.chat(command);
-                await delay(2000);
+                await delay(2500); // Wait for command to process
                 
                 // Check if we got a bed in inventory
                 const hasBed = this.bot.inventory.items().some(item => 
@@ -271,14 +276,17 @@ class UltimateBot {
                 );
                 
                 if (hasBed) {
-                    console.log(`✅ ${this.config.username} got bed from: ${command}`);
+                    console.log(`✅ ${this.config.username} SUCCESS - got bed from: ${command}`);
                     return true;
+                } else {
+                    console.log(`❌ ${this.config.username} command didn't work: ${command}`);
                 }
             } catch (error) {
-                console.log(`❌ ${this.config.username} command failed:`, command);
+                console.log(`❌ ${this.config.username} command failed:`, command, error.message);
             }
         }
         
+        console.log(`❌ ${this.config.username} ALL BED COMMANDS FAILED`);
         return false;
     }
 
@@ -511,13 +519,23 @@ class UltimateBot {
             const bedBlock = this.bot.blockAt(this.bedPosition);
             if (bedBlock && bedBlock.name.includes('bed')) {
                 try {
+                    // Switch to creative for instant breaking
                     await this.switchToCreativeMode();
+                    
+                    // Look at bed
+                    this.bot.lookAt(bedBlock.position.offset(0, 1, 0));
+                    await delay(500);
+                    
+                    // Break the bed
                     await this.bot.dig(bedBlock);
                     await delay(1000);
                     
                     this.hasBed = false;
                     this.bedPosition = null;
                     console.log(`✅ ${this.config.username} bed cleaned up`);
+                    
+                    // Switch back to survival for daytime activities
+                    await this.switchToSurvivalMode();
                     
                 } catch (error) {
                     console.log(`❌ ${this.config.username} cleanup failed:`, error.message);
@@ -575,6 +593,7 @@ class UltimateBot {
         this.hasBed = false;
         this.bedPosition = null;
         this.isSleeping = false;
+        this.isInCreative = false;
     }
 
     handleTimeBasedActions() {
@@ -652,7 +671,7 @@ class UltimateRotationSystem {
         console.log(`║ 🤖 Bot: ${botConfig.username.padEnd(26)} ║`);
         console.log(`║ 🌍 Location: ${ipInfo.country.padEnd(23)} ║`);
         console.log(`║ 📍 IP: ${ipInfo.ip.padEnd(31)} ║`);
-        console.log(`║ 🛏️ IMMEDIATE SLEEP: No chat, focus on gameplay   ║`);
+        console.log(`║ 🛏️ CORRECT COMMANDS: /give USERNAME light_blue_bed ║`);
         console.log(`║ 🎯 REALISTIC: Day activities like real player     ║`);
         console.log(`╚══════════════════════════════════════════════════╝\n`);
 
@@ -667,7 +686,7 @@ class UltimateRotationSystem {
         const sessionTime = botConfig.sessionDuration + (Math.random() * 60 * 60 * 1000);
         const hours = Math.round(sessionTime / 3600000 * 10) / 10;
         console.log(`\n⏰ ${botConfig.username} session: ${hours} hours`);
-        console.log(`🎯 Features: NO CHAT • IMMEDIATE SLEEP • REALISTIC DAY ACTIVITIES\n`);
+        console.log(`🎯 Features: CORRECT BED COMMANDS • IMMEDIATE SLEEP • NO CHAT\n`);
 
         await delay(sessionTime);
 
@@ -722,7 +741,7 @@ const healthServer = http.createServer((req, res) => {
             rotationCount: rotationSystem.rotationHistory.length,
             uptime: Math.floor(process.uptime()) + ' seconds',
             timestamp: new Date().toISOString(),
-            features: 'NO CHAT • IMMEDIATE SLEEP • REALISTIC ACTIVITIES'
+            features: 'CORRECT BED COMMANDS • IMMEDIATE SLEEP • NO CHAT'
         }));
     } else {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
