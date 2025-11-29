@@ -359,3 +359,28 @@ async function startBotSystem() {
 
 // Start the entire 24/7 rotation system
 startBotSystem();
+
+// ==============================================================================
+// 🌐 RENDER HEALTH CHECK SERVER (To satisfy the "No open ports" warning)
+// ==============================================================================
+
+const http = require('http');
+// Use environment variable PORT provided by Render, default to 3000
+const port = process.env.PORT || 3000; 
+
+const server = http.createServer((req, res) => {
+    // Respond to all requests with "OK" (this is the health check)
+    if (req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('OK: Minecraft Bot is running.\n');
+    } else {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('Minecraft Bot System is operational.\n');
+    }
+});
+
+server.listen(port, () => {
+    console.log(`\n🌐 Web Server listening for health checks on port ${port}`);
+    console.log(`(This is for Render.com stability only, bot runs independently.)`);
+});
+// You must also include 'http' in your require statements at the top
